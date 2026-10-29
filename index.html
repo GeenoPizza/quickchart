@@ -1,0 +1,2980 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QuickChart Drummer</title>
+<meta name="theme-color" content="#0A0B0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="QC Drummer">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>html,body{margin:0;background:#0A0B0C;}</style>
+<script>window.QCD_STANDALONE=true;</script>
+<script src="vendor/vexflow-min.js"></script>
+<script src="vendor/html2canvas.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+</head>
+<body>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(vendor/inter.woff2) format('woff2');}
+
+:root {
+  --bg:#0A0B0C; --surface:#15181A; --surface-2:#0E1112; --border:rgba(255,255,255,.09);
+  --teal:#14B8A6; --acid:#d3ff21; --red:#D9695F; --violet:#6F9BC9; --gold:#D9B44A;
+  --text:#EDF2F1; --text-dim:#8FA3A0; --radius:14px;
+  --sidebar-w:260px; --topbar-h:54px;
+}
+#qcd-app, #qcd-app * {box-sizing:border-box;}
+#qcd-app {margin:0;padding:0;container-type:inline-size;container-name:qcd;}
+#qcd-app { background:var(--bg); color:var(--text); font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; min-height:100vh; overflow-x:hidden; }
+#qcd-app ::-webkit-scrollbar {width:7px;height:7px;}
+#qcd-app ::-webkit-scrollbar-thumb {background:var(--border);border-radius:4px;}
+
+#qcd-app button {
+  font-family:inherit; cursor:pointer; border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+  border-radius:9px; min-height:44px; min-width:44px; padding:8px 12px; font-size:14px;
+  transition:background .15s, border-color .15s, transform .1s; -webkit-tap-highlight-color:transparent;
+}
+#qcd-app button:active {transform:scale(.96);}
+#qcd-app button:disabled {opacity:.3; cursor:default;}
+@media (hover:hover) {#qcd-app button:not(:disabled):hover {border-color:var(--teal);} }
+#qcd-app button.primary {background:var(--teal); color:#04211D; font-weight:700; border-color:var(--teal);}
+#qcd-app button.danger {color:var(--red); border-color:var(--red); background:transparent;}
+#qcd-app button.acid {background:var(--acid); color:#3A000B; font-weight:700; border-color:var(--acid);}
+#qcd-app button.ghost {background:transparent; border-color:transparent;}
+#qcd-app button.small {min-height:38px; min-width:38px; padding:4px 8px; font-size:12.5px;}
+#qcd-app button.icon-only {width:44px; padding:0;}
+#qcd-app .play-btn::before {content:""; display:inline-block; width:0; height:0; border-style:solid; border-width:5px 0 5px 8px; border-color:transparent transparent transparent currentColor; margin-right:8px; vertical-align:-1px;}
+#qcd-app .play-btn.playing::before {width:9px; height:9px; border:none; background:currentColor; border-radius:2px;}
+#qcd-app .play-btn.icon-only::before {margin:0;}
+#qcd-app .seg {display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; min-height:44px;}
+#qcd-app .seg button {flex:1; min-height:42px; border:none; border-radius:0; background:var(--surface-2); font-size:14px; font-weight:600;}
+#qcd-app .seg button.on {background:var(--teal); color:#04211D; font-weight:700;}
+#qcd-app .seg button:disabled {opacity:.35;}
+#qcd-app .warn {display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:12px; padding:10px 12px; border:1px solid var(--red); border-radius:10px; font-size:13px;}
+#qcd-app .warn[hidden] {display:none;}
+#qcd-app .warn-btns {display:flex; gap:8px;}
+#qcd-app .view-bar {position:sticky; top:0; z-index:20; background:var(--bg); padding:12px 20px 8px; display:flex; justify-content:center;}
+#qcd-app .view-seg {width:100%; max-width:380px;}
+#qcd-app .view-seg button {font-size:15px; font-weight:700; min-height:46px;}
+#qcd-app .ver {font-size:10px; font-weight:700; color:var(--text-dim); border:1px solid var(--border); border-radius:6px; padding:1px 5px; margin-left:2px;}
+#qcd-app button.confirming {background:var(--red) !important; border-color:var(--red) !important; color:#fff !important; font-size:11px !important; font-weight:700;}
+
+#qcd-app input, #qcd-app select, #qcd-app textarea {
+  font-family:inherit; background:var(--surface-2); color:var(--text); border:1px solid var(--border);
+  border-radius:9px; padding:8px 10px; font-size:15px; min-height:44px; width:100%;
+}
+#qcd-app input:focus, #qcd-app select:focus, #qcd-app textarea:focus {outline:2px solid var(--teal); outline-offset:1px;}
+#qcd-app textarea {resize:vertical; font-family:inherit;}
+#qcd-app label {font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:4px;}
+#qcd-app a {color:var(--teal);}
+
+#qcd-app #topbar { display:none; position:sticky; top:0; z-index:60; height:var(--topbar-h); background:var(--surface); border-bottom:1px solid var(--border); align-items:center; gap:10px; padding:0 10px; }
+#qcd-app #topbar .tb-title {flex:1; min-width:0; font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+#qcd-app #topbar .tb-title span {color:var(--acid);}
+#qcd-app #appShell {display:flex;}
+#qcd-app #overlay {display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:65;}
+#qcd-app #overlay.show {display:block;}
+
+#qcd-app #sidebar { width:var(--sidebar-w); min-width:var(--sidebar-w); background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; height:100vh; position:sticky; top:0; }
+#qcd-app #sidebar {overflow:hidden;}
+#qcd-app .block-mini .row-label, #qcd-app .block-mini .measure-head {color:inherit; opacity:.75;}
+#qcd-app #sidebar-top {padding:16px; border-bottom:1px solid var(--border);}
+#qcd-app #sidebar-top h1 {font-size:17px; margin:0 0 12px 0; font-weight:700; display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px;}
+#qcd-app #sidebar-top h1 .drum {color:var(--acid);}
+#qcd-app .app-name {white-space:nowrap;}
+#qcd-app .sidebar-new-row {display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+#qcd-app .bo-logo {height:46px; width:auto; display:block; object-fit:contain;}
+#qcd-app #sidebar-top h1 > a {flex:0 0 100%; line-height:0; margin-bottom:2px;}
+#qcd-app #topbar .bo-logo {height:34px;}
+#qcd-app .cv-brand-logo {height:52px; width:auto; display:block; object-fit:contain; margin:0 auto 4px auto;}
+#qcd-app #chartList {flex:1; overflow-y:auto; padding:8px;}
+#qcd-app .chart-item {display:flex; align-items:center; gap:2px; padding:9px 8px 9px 10px; border-radius:9px; margin-bottom:4px; border:1px solid transparent; cursor:pointer;}
+#qcd-app .chart-item.selected {background:var(--surface-2); border-color:var(--teal);}
+#qcd-app .chart-item .ci-name {overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px;}
+#qcd-app .chart-item .ci-meta {font-size:11px; color:var(--text-dim);}
+#qcd-app .chart-item button {min-height:34px; min-width:34px; padding:0; font-size:18px; font-weight:700; line-height:1;}
+#qcd-app .chart-item button.mv {font-size:15px; min-width:30px;}
+#qcd-app #sidebar-actions {padding:10px; border-top:1px solid var(--border); display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+#qcd-app #sidebar-actions button {font-size:12px; padding:8px 4px;}
+#qcd-app #sidebar-footer {padding:12px 16px; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-dim); text-align:center;}
+
+#qcd-app #main {flex:1; min-width:0; height:100vh; overflow-y:auto;}
+#qcd-app #editorPanel {padding:58px 20px 20px; max-width:900px; margin:0 auto;}
+#qcd-app .card {background:var(--surface); border:none; border-radius:20px; padding:18px; margin-bottom:16px;}
+#qcd-app .card h2 {margin:0 0 14px 0; font-size:16px; color:var(--text); font-weight:700; display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
+#qcd-app .card h2 small {font-size:12px; font-weight:600; color:var(--text-dim);}
+#qcd-app .hdr-title, #qcd-app .hdr-artist {background:transparent; border:none; border-bottom:1px solid transparent; border-radius:0;}
+#qcd-app .hdr-title {font-size:24px; font-weight:800; padding:4px 0; min-height:46px;}
+#qcd-app .hdr-artist {font-size:14px; color:var(--text-dim); padding:2px 0; min-height:36px;}
+#qcd-app .hdr-title:focus, #qcd-app .hdr-artist:focus {outline:none; border-bottom-color:var(--teal);}
+#qcd-app .hdr-title::placeholder, #qcd-app .hdr-artist::placeholder {color:var(--text-dim); opacity:.6;}
+#qcd-app .hdr-row {display:grid; grid-template-columns:auto 1fr 1fr; gap:12px; align-items:end; margin-top:16px;}
+#qcd-app .bpm-ctl {display:flex; align-items:center; gap:4px;}
+#qcd-app .bpm-ctl button {min-width:44px; padding:0; font-size:20px; font-weight:700;}
+#qcd-app #bpmInput {width:78px; text-align:center; color:var(--acid); font-size:24px; font-weight:800; padding:4px; -moz-appearance:textfield;}
+#qcd-app #bpmInput::-webkit-inner-spin-button, #qcd-app #bpmInput::-webkit-outer-spin-button {-webkit-appearance:none; margin:0;}
+@container qcd (max-width:560px) {
+  #qcd-app .hdr-row {grid-template-columns:1fr 1fr;}
+  #qcd-app .bpm-box {grid-column:1 / -1;}
+}
+
+/* groove editor */
+#qcd-app .groove-editor {display:flex; flex-direction:column; gap:10px;}
+#qcd-app .groove-title {font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--teal);}
+#qcd-app .measures-row {display:flex; gap:10px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:6px;}
+#qcd-app .measure-block {border:1px solid var(--border); border-radius:9px; padding:8px; background:rgba(0,0,0,.12); min-width:250px; flex-shrink:0; position:relative;}
+#qcd-app .measure-head {display:flex; align-items:center; justify-content:space-between; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;}
+#qcd-app .measure-actions {display:flex; align-items:center; gap:6px;}
+#qcd-app .measure-actions button {min-height:34px; min-width:34px; padding:0 10px; font-size:12px; font-weight:600; background:transparent; border-color:var(--border); color:var(--text-dim); text-transform:none; letter-spacing:0;}
+#qcd-app .measure-actions button.del {font-size:16px; padding:0;}
+#qcd-app .measure-actions button:hover {color:var(--text);}
+#qcd-app .notation-box {background:#F5EFE2; border:1px solid rgba(0,0,0,.22); border-radius:8px; padding:10px 3px 6px; margin-bottom:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+#qcd-app .notation-box.compact {padding:8px 0 4px; border:none; box-shadow:inset 0 0 0 1px rgba(0,0,0,.22); overflow:hidden;}
+#qcd-app .notation-row {display:flex; align-items:center; justify-content:center; gap:5px;}
+#qcd-app .notation-canvas {flex:0 1 auto; min-width:0;}
+#qcd-app .grid-row {display:flex; align-items:center; gap:5px; margin-bottom:4px;}
+#qcd-app .grid-row .row-label {width:62px; min-width:62px; font-size:11px; color:var(--text-dim); text-transform:uppercase;}
+#qcd-app .grid-cells {display:flex; gap:3px; overflow-x:auto; flex:1; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; padding-bottom:2px;}
+#qcd-app .step-btn {width:32px; height:32px; min-width:32px; min-height:32px; border-radius:6px; background:var(--surface-2); border:1px solid var(--border); flex-shrink:0; scroll-snap-align:start; padding:0; position:relative;}
+#qcd-app .step-btn.beat-start {border-left:2px solid #6b7885;}
+#qcd-app .step-btn.beat-end {margin-right:9px;}
+#qcd-app .step-btn[data-lane="hh"].on {background:var(--teal); border-color:var(--teal);}
+#qcd-app .step-btn[data-lane="hh"].open {background:var(--teal); border-color:var(--text);}
+#qcd-app .step-btn[data-lane="hh"].open::after {content:""; position:absolute; top:50%; left:50%; width:11px; height:11px; transform:translate(-50%, -50%); border:2.5px solid #04211D; border-radius:50%; box-sizing:border-box;}
+#qcd-app .step-btn[data-lane="hh"].crash {background:var(--acid); border-color:var(--acid);}
+#qcd-app .step-btn[data-lane="hh"].crash::after {content:"C"; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:12px; font-weight:800; color:#1A1A1A;}
+#qcd-app .step-btn[data-lane="snare"].on {background:var(--text); border-color:var(--text);}
+#qcd-app .step-btn[data-lane="snare"].ghost {background:var(--text-dim); border-color:var(--text-dim);}
+#qcd-app .step-btn[data-lane="snare"].ghost::after {content:"g"; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:10px; font-weight:800; color:#1A1A1A;}
+#qcd-app .step-btn[data-lane="snare"].rimclick {background:var(--gold); border-color:var(--gold); color:#1A1A1A;}
+#qcd-app .step-btn[data-lane="snare"].rimclick::after {content:"✕"; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:14px; font-weight:900;}
+#qcd-app .step-btn[data-lane="kick"].on {background:var(--red); border-color:var(--red);}
+#qcd-app .step-btn[data-lane="tom"].on {background:var(--violet); border-color:var(--violet);}
+#qcd-app .step-btn[data-lane="floortom"].on {background:#D9A441; border-color:#D9A441;}
+#qcd-app .step-btn.playing-step {box-shadow:0 0 0 2px var(--acid) inset; border-color:var(--acid);}
+#qcd-app .count-row {margin-bottom:2px;}
+#qcd-app #editorPanel.no-counts .count-row {display:none;}
+#qcd-app .cnt-cell {display:block; width:32px; min-width:32px; flex-shrink:0; text-align:center; font-size:10.5px; line-height:14px; color:var(--text-dim);}
+#qcd-app .cnt-cell.strong {color:var(--text); font-weight:700;}
+#qcd-app .cnt-cell.beat-end {margin-right:9px;}
+#qcd-app .cnt-cell.playing-step {color:var(--acid);}
+#qcd-app #btnCounts {min-height:32px; font-size:12px; font-weight:600; color:var(--text-dim);}
+#qcd-app #btnCounts.on {background:var(--teal); border-color:var(--teal); color:#04211D;}
+#qcd-app .block-mini .cnt-cell {color:inherit; opacity:.8;}
+#qcd-app .grid-legend {font-size:11.5px; color:var(--text-dim); line-height:1.4;}
+#qcd-app .groove-actions {display:flex; gap:6px; flex-wrap:wrap;}
+#qcd-app .groove-actions button {flex:1; min-width:90px; font-size:12.5px; padding:8px 6px;}
+@container qcd (max-width:640px) {
+  #qcd-app .step-btn {width:28px; height:28px; min-width:28px; min-height:28px;}
+  #qcd-app .cnt-cell {width:28px; min-width:28px;}
+}
+@container qcd (max-width:480px) {
+  #qcd-app .grid-row .row-label {width:50px; min-width:50px; font-size:10px;}
+}
+#qcd-app .block-mini .measure-block {background:rgba(0,0,0,.22);}
+#qcd-app .block-mini .step-btn {background:rgba(0,0,0,.28); border-color:rgba(255,255,255,.2);}
+#qcd-app .block-mini .groove-actions button {background:rgba(0,0,0,.2); border-color:rgba(255,255,255,.3); color:inherit;}
+
+/* BLOCKS */
+#qcd-app .add-zone {padding-bottom:16px; margin-bottom:16px; border-bottom:1px solid var(--border);}
+#qcd-app .seq-zone {margin-bottom:18px;}
+#qcd-app .add-zone label, #qcd-app .seq-zone label {margin-bottom:8px;}
+#qcd-app #blockAddRow {display:flex; flex-wrap:wrap; gap:8px;}
+#qcd-app #blockAddRow button {white-space:nowrap; font-weight:700; min-height:38px; padding:6px 12px; font-size:13px; background:transparent; color:var(--text); border-width:1.5px; border-left-width:6px;}
+#qcd-app #blockAddRow button.custom-chip {background:transparent; border:1.5px dashed var(--violet); color:var(--violet);}
+#qcd-app .struct-strip {display:flex; flex-wrap:wrap; gap:4px;}
+#qcd-app .struct-strip:empty {display:none;}
+#qcd-app .strip-seg {flex:1 1 auto; min-width:84px; min-height:36px; padding:0 4px 0 10px; border-radius:8px; font-size:11.5px; font-weight:800; text-transform:uppercase; display:flex; align-items:center; gap:4px; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; transition:box-shadow .15s, transform .15s;}
+#qcd-app .strip-seg .seg-label {flex:1 1 auto; min-width:0; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+#qcd-app .strip-seg .seg-x {flex:none; width:26px; height:26px; min-width:26px; min-height:26px; padding:0; border:none; border-radius:6px; background:rgba(0,0,0,.16); color:inherit; font-size:15px; line-height:1;}
+#qcd-app .strip-seg.dragging-seg {cursor:grabbing; transform:scale(1.06); box-shadow:0 8px 20px rgba(0,0,0,.5); position:relative; z-index:2;}
+#qcd-app .strip-seg.arming {background:var(--red) !important; color:#fff !important;}
+#qcd-app #blocksSection {display:flex; flex-direction:column; gap:10px; margin-bottom:0;}
+#qcd-app .block-card {border-radius:16px; padding:12px 12px 6px; display:flex; flex-direction:column; gap:8px; transition:box-shadow .15s; min-width:0;}
+#qcd-app .block-card.dragging {box-shadow:0 18px 38px rgba(0,0,0,.5); transform:scale(1.02) rotate(1deg); opacity:.97; transition:none;}
+#qcd-app .block-card.flash {animation:qcdFlash 1s ease;}
+@keyframes qcdFlash {0%,60% {box-shadow:0 0 0 3px var(--text);} 100% {box-shadow:0 0 0 0 transparent;}}
+#qcd-app .drag-placeholder {background:rgba(255,255,255,.05); border:2px dashed rgba(255,255,255,.35); box-shadow:none;}
+#qcd-app .block-card-top {display:flex; align-items:center; gap:10px;}
+#qcd-app .badge-label {font-size:17px; font-weight:900; text-transform:uppercase; letter-spacing:.02em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+#qcd-app .badge-input { font-size:17px; font-weight:900; text-transform:uppercase; letter-spacing:.02em; flex:1; min-width:0; background:transparent; border:none; border-bottom:2px dashed currentColor; color:inherit; padding:2px 0; min-height:auto; border-radius:0; }
+#qcd-app .badge-input:focus {outline:none; border-bottom-style:solid;}
+#qcd-app .block-card-controls {display:flex; gap:4px; flex-shrink:0; align-items:center;}
+#qcd-app .drag-handle { min-height:36px; min-width:36px; padding:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.18); border-color:rgba(255,255,255,.25); color:inherit; cursor:grab; touch-action:none; }
+#qcd-app .drag-handle:active {cursor:grabbing;}
+#qcd-app .drag-handle .grip {display:grid; grid-template-columns:repeat(2,4px); grid-template-rows:repeat(3,4px); gap:3px;}
+#qcd-app .drag-handle .grip span {width:4px; height:4px; border-radius:50%; background:currentColor; opacity:.85;}
+#qcd-app .color-dot {position:relative; display:block; width:22px; height:22px; min-width:22px; border-radius:50%; border:2px solid currentColor; background:rgba(0,0,0,.18); flex-shrink:0; cursor:pointer; margin:0;}
+#qcd-app .color-dot input {position:absolute; left:-9px; top:-9px; width:40px; height:40px; min-height:0; padding:0; border:none; opacity:0; cursor:pointer;}
+#qcd-app .block-card-controls button.del-btn {min-height:36px; min-width:36px; padding:0; font-size:20px; font-weight:700; line-height:1; background:rgba(0,0,0,.18); border-color:rgba(255,255,255,.25); color:inherit;}
+#qcd-app .block-row {display:flex; align-items:center; gap:10px;}
+#qcd-app .bars-stepper {display:flex; align-items:center; gap:4px; flex-shrink:0;}
+#qcd-app .bars-stepper button {min-height:36px; min-width:36px; padding:0; font-size:18px; font-weight:800; background:rgba(0,0,0,.18); border-color:rgba(255,255,255,.25); color:inherit;}
+#qcd-app .bars-value {font-size:20px; font-weight:800; min-width:62px; text-align:center; white-space:nowrap;}
+#qcd-app .bars-value::after {content:" batt."; font-size:10.5px; font-weight:700; opacity:.7; text-transform:uppercase;}
+#qcd-app .bars-value[data-empty]::after {content:"";}
+#qcd-app .block-notes {flex:1; min-width:0; background:rgba(0,0,0,.16); border:1px solid rgba(255,255,255,.18); color:inherit; min-height:40px; height:40px; font-size:14px; line-height:1.3; padding:9px 10px; resize:none; overflow:hidden;}
+#qcd-app .block-notes::placeholder {color:inherit; opacity:.55;}
+#qcd-app .block-links {display:flex; gap:16px;}
+#qcd-app .block-links button {min-height:32px; min-width:0; padding:0 2px; background:transparent; border:none; color:inherit; font-size:12.5px; font-weight:700; opacity:.85; text-decoration:underline; text-underline-offset:3px;}
+@container qcd (max-width:520px) {
+  #qcd-app .block-row {flex-wrap:wrap;}
+  #qcd-app .block-notes {flex:1 1 100%;}
+}
+#qcd-app .block-mini {border-top:1px dashed rgba(255,255,255,.3); padding-top:10px;}
+
+/* live mode / chart view */
+#qcd-app #liveBar { position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:10px 16px calc(10px + env(safe-area-inset-bottom)); display:none; align-items:center; justify-content:space-between; gap:10px 14px; flex-wrap:wrap; z-index:70; }
+#qcd-app #liveBar .live-actions {display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+#qcd-app #btnExitLive {min-height:48px; padding:0 18px; font-size:15px; font-weight:700;}
+#qcd-app.live #appShell, #qcd-app.live #topbar {display:none;}
+#qcd-app.live #liveBar {display:flex;}
+#qcd-app.live #chartViewOuter {display:block;}
+#qcd-app #chartViewOuter {display:none; height:100vh; overflow-y:auto;}
+#qcd-app #chartView {padding:58px 20px 200px; max-width:960px; margin:0 auto; background:var(--bg);}
+#qcd-app .cv-header {display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border); padding-bottom:14px; margin-bottom:14px; gap:16px; flex-wrap:wrap;}
+#qcd-app .cv-title {font-size:26px; font-weight:800; margin:0;}
+#qcd-app .cv-artist {font-size:15px; font-weight:600; color:var(--text-dim); margin-top:2px;}
+#qcd-app .cv-bpm {font-size:38px; font-weight:900; color:var(--acid); line-height:1;}
+#qcd-app .cv-bpm-label {font-size:11px; color:var(--text-dim); text-transform:uppercase;}
+#qcd-app .cv-tag {font-size:14px; color:var(--text-dim); margin-top:4px;}
+#qcd-app .cv-sequence {display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:6px 2px 16px 2px;}
+#qcd-app .cv-seq-chip {padding:7px 14px; border-radius:20px; font-weight:800; font-size:12.5px; text-transform:uppercase; white-space:nowrap; flex-shrink:0;}
+#qcd-app .cv-seq-arrow {color:var(--text-dim); flex-shrink:0; font-size:13px;}
+#qcd-app .cv-block {border-radius:16px; padding:16px 18px; margin-bottom:12px; display:block;}
+#qcd-app .cv-block-top {display:flex; align-items:center; justify-content:space-between; gap:12px;}
+#qcd-app .cv-badge {font-weight:900; font-size:22px; text-transform:uppercase; letter-spacing:.01em;}
+#qcd-app .cv-bars {display:flex; align-items:baseline; gap:6px; opacity:.9;}
+#qcd-app .cv-bars b {font-size:30px; font-weight:900; line-height:1;}
+#qcd-app .cv-bars small {font-size:12px; font-weight:700; text-transform:uppercase;}
+#qcd-app .cv-notes {margin-top:8px; font-size:18px; font-weight:600; line-height:1.4;}
+#qcd-app .cv-block, #qcd-app .cv-seq-chip {transition:opacity .2s, box-shadow .2s;}
+#qcd-app .cv-block {cursor:pointer;}
+#qcd-app #chartView.has-current .cv-block:not(.current):not(.next), #qcd-app #chartView.has-current .cv-seq-chip:not(.current):not(.next) {opacity:.3;}
+#qcd-app #chartView .cv-block.current {box-shadow:0 0 0 3px var(--text);}
+#qcd-app .cv-mini-notation-wrap {margin-top:10px; display:flex; flex-direction:column; gap:8px;}
+#qcd-app .cv-mini-notation-wrap.two-col {display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+@container qcd (max-width:560px) {
+  #qcd-app .cv-mini-notation-wrap.two-col {grid-template-columns:1fr;}
+}
+#qcd-app .cv-mini-notation-wrap .notation-box {margin-bottom:0 !important; background:#F5EFE2; padding:8px 2px 4px; overflow-x:visible;}
+#qcd-app .brand-credit {font-size:12.5px; color:var(--text-dim);}
+#qcd-app .brand-credit a {font-weight:700;}
+@container qcd (min-width:641px) {
+  #qcd-app .cv-title {font-size:32px;}
+  #qcd-app .cv-bpm {font-size:46px;}
+}
+#qcd-app .empty-state {color:var(--text-dim); font-size:13.5px; text-align:center; padding:24px 10px;}
+#qcd-app #printOptionsRow {display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--text-dim);}
+#qcd-app #printOptionsRow input {min-height:auto; height:16px; width:16px; accent-color:var(--teal);}
+#qcd-app #liveNav {display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-dim); flex-shrink:0;}
+#qcd-app #liveNav button {min-height:48px; min-width:48px; padding:0; font-size:30px; line-height:1; background:transparent; border-color:var(--border);}
+#qcd-app #liveNav .nav-label {font-weight:600; color:var(--text); min-width:120px; max-width:260px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+
+@page { margin: 12mm; }
+@media print {
+  #qcd-app, #qcd-app * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
+  body * {visibility:hidden;}
+  #qcd-app #topbar, #qcd-app #overlay, #qcd-app #appShell, #qcd-app #liveBar {display:none !important;}
+  #qcd-app {min-height:0 !important; height:auto !important; container-type:normal !important; contain:none !important; overflow:visible !important;}
+  #qcd-app #chartViewOuter, #qcd-app #chartViewOuter * {visibility:visible;}
+  #qcd-app #chartViewOuter {display:block !important; position:static !important; width:100%; height:auto !important; overflow:visible !important; margin:0 !important; padding:0 !important; background:var(--bg) !important;}
+  body {background:var(--bg); margin:0 !important;}
+  #qcd-app #chartView {display:block !important; background:var(--bg) !important; margin:0 !important; max-width:none !important; padding:0 6mm !important;}
+  #qcd-app #chartView .cv-sequence {overflow-x:visible !important; flex-wrap:wrap !important; padding-bottom:8px !important;}
+  #qcd-app #chartView .notation-box {overflow-x:visible !important;}
+
+  /* Layout compatto + nessuna sezione spezzata a fine pagina: se non ci sta, passa alla pagina dopo */
+  #qcd-app #chartView .cv-header {padding-bottom:8px; margin-bottom:8px;}
+  #qcd-app #chartView .cv-brand-logo {height:36px; margin-bottom:2px;}
+  #qcd-app #chartView .cv-title {font-size:19px;}
+  #qcd-app #chartView .cv-artist {font-size:12px;}
+  #qcd-app #chartView .cv-bpm {font-size:26px;}
+  #qcd-app #chartView .cv-tag {font-size:11px; margin-top:2px;}
+  #qcd-app #chartView .groove-title {font-size:9.5px; margin-bottom:3px; break-after:avoid; page-break-after:avoid;}
+  #qcd-app #chartView .cv-sequence {padding:2px 2px 8px;}
+  #qcd-app #chartView .cv-seq-chip {padding:4px 10px; font-size:11px;}
+  #qcd-app #chartView .notation-box {padding:5px 2px 2px; margin-bottom:5px;}
+  #qcd-app #chartView .cv-block {padding:7px 10px; margin-bottom:5px;}
+  #qcd-app #chartView .cv-notes {font-size:12.5px; margin-top:4px; line-height:1.3;}
+  #qcd-app #chartView .cv-bars b {font-size:17px;}
+  #qcd-app #chartView .cv-bars small {font-size:9px;}
+  #qcd-app #chartView .cv-badge {font-size:15px;}
+  #qcd-app .view-bar {display:none !important;}
+  #qcd-app #chartView.has-current .cv-block:not(.current), #qcd-app #chartView.has-current .cv-seq-chip:not(.current) {opacity:1 !important;}
+  #qcd-app #chartView .cv-block.current {box-shadow:none !important;}
+  #qcd-app #chartView .cv-mini-notation-wrap {margin-top:6px; gap:5px;}
+  #qcd-app #chartView .brand-credit {font-size:9.5px; margin-top:8px !important;}
+  #qcd-app #chartView .cv-header,
+  #qcd-app #chartView .cv-sequence,
+  #qcd-app #chartView .cv-block,
+  #qcd-app #chartView .cv-block-top,
+  #qcd-app #chartView .cv-mini-notation-wrap,
+  #qcd-app #chartView .notation-box,
+  #qcd-app #chartView .brand-credit {
+    break-inside:avoid !important; page-break-inside:avoid !important; -webkit-column-break-inside:avoid !important;
+  }
+  #qcd-app.print-light #chartViewOuter, #qcd-app.print-light #chartView {background:#ffffff !important;}
+  #qcd-app.print-light #chartView .cv-title, #qcd-app.print-light #chartView .cv-artist, #qcd-app.print-light #chartView .cv-tag, #qcd-app.print-light #chartView .cv-bpm-label, #qcd-app.print-light #chartView .groove-title, #qcd-app.print-light #chartView .brand-credit, #qcd-app.print-light #chartView .cv-seq-arrow { color:var(--bg) !important; }
+  #qcd-app.print-light #chartView .cv-header {border-bottom-color:#ccc !important;}
+  #qcd-app.print-light #chartView .cv-bpm {color:#0B7A6C !important;}
+}
+
+@container qcd (max-width:899px) {
+  #qcd-app #topbar {display:flex;}
+  #qcd-app #sidebar {position:fixed; top:0; left:0; z-index:66; height:100vh; transform:translateX(-100%); transition:transform .2s ease; box-shadow:8px 0 24px rgba(0,0,0,.4);}
+  #qcd-app #sidebar.open {transform:translateX(0);}
+  #qcd-app #editorPanel {padding:14px;}
+  #qcd-app .view-bar {padding:10px 14px 6px;}
+  #qcd-app .card {padding:13px;}
+}
+
+/* ===== v2.1: toggle vista (posizione fissa, pill scorrevole) ===== */
+#qcd-app #viewToggle{position:fixed; top:9px; left:50%; transform:translateX(-50%); z-index:61; display:flex; width:164px; height:34px; padding:3px; border-radius:999px; background:rgba(21,24,26,.72); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border:1px solid var(--border);}
+#qcd-app #viewToggle .vt-pill{position:absolute; top:3px; bottom:3px; left:3px; width:calc((100% - 6px) / 2); border-radius:999px; background:var(--teal); transition:transform .3s cubic-bezier(.4,.1,.2,1);}
+#qcd-app #viewToggle[data-pos="chart"] .vt-pill{transform:translateX(100%);}
+#qcd-app #viewToggle button{position:relative; flex:1; height:100%; min-height:0; min-width:0; padding:0; border:none; border-radius:999px; background:transparent; font-size:12.5px; font-weight:700; color:var(--text-dim); transition:color .2s;}
+#qcd-app #viewToggle button.on{color:#04211D;}
+#qcd-app #viewToggle button:active{transform:none;}
+@container qcd (max-width:899px){
+  #qcd-app #viewToggle{left:auto; right:10px; transform:none; width:148px;}
+  #qcd-app #topbar .tb-title{margin-right:156px;}
+}
+
+/* ===== sezione successiva (metronomo) ===== */
+#qcd-app #chartView .cv-block.next{outline:3px dashed var(--acid); outline-offset:2px;}
+#qcd-app #chartView .cv-seq-chip.next{outline:2px dashed var(--acid); outline-offset:2px;}
+
+/* ===== barra Live ===== */
+#qcd-app .live-left, #qcd-app .live-center{display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap;}
+#qcd-app .live-center{justify-content:center;}
+#qcd-app .metro-ctl{display:flex; align-items:center; gap:8px;}
+#qcd-app .metro-ci{display:flex; align-items:center; gap:3px; font-size:11.5px; color:var(--text-dim);}
+#qcd-app .metro-ci span{margin-right:3px;}
+#qcd-app .metro-ci b{min-width:16px; text-align:center; color:var(--text); font-size:14px;}
+#qcd-app .metro-ci button{min-height:32px; min-width:32px; padding:0; font-size:16px;}
+#qcd-app #metroInfo{font-size:12.5px; font-weight:700; color:var(--acid); white-space:nowrap; min-width:92px;}
+#qcd-app #btnMetro.playing{background:var(--acid); color:#1A1A1A; border-color:var(--acid);}
+#qcd-app #liveNav .nav-label{min-width:90px;}
+@container qcd (min-width:900px){
+  #qcd-app.live #liveBar{display:grid; grid-template-columns:1fr auto 1fr;}
+  #qcd-app #liveBar .live-actions{justify-self:end;}
+}
+@container qcd (max-width:899px){
+  #qcd-app #liveBar{justify-content:center;}
+  #qcd-app #metroInfo{min-width:0;}
+}
+
+/* ===== interfaccia compatta ===== */
+#qcd-app.ui-sm .card{padding:12px; border-radius:16px; margin-bottom:12px;}
+#qcd-app.ui-sm .card h2{font-size:14px; margin-bottom:10px;}
+#qcd-app.ui-sm #editorPanel{padding:54px 12px 14px;}
+#qcd-app.ui-sm .hdr-title{font-size:20px; min-height:40px;}
+#qcd-app.ui-sm .hdr-artist{font-size:13px; min-height:32px;}
+#qcd-app.ui-sm .hdr-row{margin-top:10px; gap:8px;}
+#qcd-app.ui-sm #bpmInput{width:62px; font-size:20px; min-height:38px;}
+#qcd-app.ui-sm #timeSigSelect{min-height:38px; font-size:14px;}
+#qcd-app.ui-sm .bpm-ctl button{min-width:38px; min-height:38px; font-size:18px;}
+#qcd-app.ui-sm .seg{min-height:38px;}
+#qcd-app.ui-sm .seg button{min-height:36px; font-size:13px;}
+#qcd-app.ui-sm .groove-actions button, #qcd-app.ui-sm #sidebar-actions button, #qcd-app.ui-sm .sidebar-new-row button{min-height:36px; font-size:12.5px;}
+#qcd-app.ui-sm .step-btn{width:26px; height:26px; min-width:26px; min-height:26px;}
+#qcd-app.ui-sm .cnt-cell{width:26px; min-width:26px; font-size:10px;}
+#qcd-app.ui-sm .grid-row .row-label{width:48px; min-width:48px; font-size:10px;}
+#qcd-app.ui-sm .measure-block{min-width:226px; padding:6px;}
+#qcd-app.ui-sm .measure-actions button{min-height:30px; min-width:30px; padding:0 8px; font-size:11.5px;}
+#qcd-app.ui-sm #blockAddRow button{min-height:34px; padding:4px 10px; font-size:12px;}
+#qcd-app.ui-sm .block-card{padding:10px 10px 4px; border-radius:14px;}
+#qcd-app.ui-sm .badge-label, #qcd-app.ui-sm .badge-input{font-size:15px;}
+#qcd-app.ui-sm .bars-value{font-size:17px; min-width:54px;}
+#qcd-app.ui-sm .bars-stepper button, #qcd-app.ui-sm .block-card-controls button{min-height:32px; min-width:32px; font-size:16px;}
+#qcd-app.ui-sm .block-notes{min-height:34px; height:34px; font-size:13px; padding:7px 8px;}
+#qcd-app.ui-sm .strip-seg{min-height:30px; font-size:10.5px;}
+#qcd-app.ui-sm #chartView{padding:54px 12px 190px;}
+#qcd-app.ui-sm .cv-title{font-size:22px;}
+#qcd-app.ui-sm .cv-bpm{font-size:30px;}
+#qcd-app.ui-sm .cv-block{padding:12px 14px;}
+#qcd-app.ui-sm .cv-badge{font-size:18px;}
+#qcd-app.ui-sm .cv-bars b{font-size:24px;}
+#qcd-app.ui-sm .cv-notes{font-size:15px;}
+#qcd-app.ui-sm #liveBar{padding:6px 10px calc(6px + env(safe-area-inset-bottom)); gap:6px 10px;}
+#qcd-app.ui-sm #btnExitLive{min-height:38px; padding:0 12px; font-size:14px;}
+#qcd-app.ui-sm #liveNav button{min-height:38px; min-width:38px; font-size:24px;}
+#qcd-app.ui-sm #liveNav .nav-label{min-width:60px; max-width:130px; font-size:12.5px;}
+@container qcd (max-width:899px){ #qcd-app.ui-sm #editorPanel{padding:12px;} }
+@media print{ #qcd-app #viewToggle{display:none !important;} }
+#qcd-app #backupInfo{padding:8px 14px 0; font-size:11.5px; line-height:1.35; color:var(--text-dim); border-top:1px solid var(--border);}
+#qcd-app #backupInfo.stale{color:var(--acid);}
+</style>
+
+<div id="qcd-app">
+<div id="topbar">
+  <button class="icon-only ghost" id="btnMenuToggle" aria-label="Apri libreria">☰</button>
+  <a href="https://www.batterista.online" target="_blank" rel="noopener" title="www.batterista.online"><img class="bo-logo" src="https://d1yei2z3i6k35z.cloudfront.net/11429636/67bdd0ad73993_BO_logo_2022_transp.png" alt="Batterista Online"></a>
+  <div class="tb-title">QuickChart <span>Drummer</span></div>
+</div>
+
+<div id="overlay"></div>
+
+<div id="viewToggle" data-pos="edit" role="group" aria-label="Vista"><span class="vt-pill"></span><button data-view="edit" class="on">Modifica</button><button data-view="chart">Chart</button></div>
+
+<div id="appShell">
+  <div id="sidebar">
+    <div id="sidebar-top">
+      <h1><a href="https://www.batterista.online" target="_blank" rel="noopener" title="www.batterista.online"><img class="bo-logo" src="https://d1yei2z3i6k35z.cloudfront.net/11429636/67bdd0ad73993_BO_logo_2022_transp.png" alt="Batterista Online"></a><span class="app-name">QuickChart <span class="drum">Drummer</span> <small class="ver">2.0</small></span></h1>
+      <div class="sidebar-new-row">
+        <button id="btnNewChart">+ Nuova</button>
+        <button id="btnDupChart" title="Crea una copia della chart selezionata">Duplica</button>
+      </div>
+    </div>
+    <div id="chartList"></div>
+    <div id="backupInfo"></div>
+    <div id="sidebar-actions">
+      <button id="btnExport" title="Salva tutte le tue chart in un file (potrai ricaricarlo per continuare a modificarle)">Salva SetList</button>
+      <button id="btnImportTrigger" title="Carica un file SetList salvato in precedenza">Carica SetList</button>
+      <input type="file" id="fileImport" accept="application/json" style="display:none;">
+      <label style="grid-column:1/-1; margin:4px 0 -2px;">Dimensione interfaccia</label>
+      <div class="seg ui-seg" style="grid-column:1/-1;"><button data-ui="sm">Compatta</button><button data-ui="md">Standard</button></div>
+    </div>
+    <div id="sidebar-footer">
+      Prodotto da <a href="https://www.batterista.online" target="_blank" style="color:var(--teal); text-decoration:none; font-weight:bold;">www.batterista.online</a>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="editorPanel"></div>
+  </div>
+</div>
+
+<div id="chartViewOuter"><div id="chartView"></div></div>
+
+<div id="liveBar">
+  <div class="live-left">
+    <button class="danger" id="btnExitLive">× Esci</button>
+    <div id="liveNav">
+      <button id="btnPrevChart" title="Brano precedente" aria-label="Brano precedente">‹</button>
+      <span class="nav-label" id="navChartLabel">1/3</span>
+      <button id="btnNextChart" title="Brano successivo" aria-label="Brano successivo">›</button>
+    </div>
+  </div>
+  <div class="live-center">
+    <button id="btnPlayLive" class="small play-btn" title="Ascolta il Main Groove">Groove</button>
+    <div class="metro-ctl">
+      <button id="btnMetro" class="small play-btn" title="Metronomo che segue la chart">Metronomo</button>
+      <div class="metro-ci" title="Battute di attacco prima dell'inizio"><span>Attacco</span><button id="ciMinus" aria-label="Meno battute di attacco">−</button><b id="ciVal">1</b><button id="ciPlus" aria-label="Più battute di attacco">+</button></div>
+      <span id="metroInfo"></span>
+    </div>
+  </div>
+  <div class="live-actions">
+    <div id="printOptionsRow">
+      <input type="checkbox" id="chkPrintLight">
+      <label for="chkPrintLight" style="margin:0; text-transform:none; letter-spacing:normal; font-size:11.5px;">Stampa con sfondo chiaro</label>
+    </div>
+    <button id="btnPNGLive" class="small" title="Scarica PNG">PNG</button>
+    <button id="btnPDFLive" class="small" title="Stampa o salva come PDF">Stampa / PDF</button>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+const qcdRoot = document.getElementById("qcd-app");
+
+/* ============================ CONFIG ============================ */
+const STORAGE_KEY = "quickchart_drummer_data_v3";
+
+const TIME_SIGNATURES = {
+  "4/4":  { beats:4, stepsPerBeat:4, stepsPerMeasure:16 },
+  "3/4":  { beats:3, stepsPerBeat:4, stepsPerMeasure:12 },
+  "12/8": { beats:4, stepsPerBeat:6, stepsPerMeasure:24 }
+};
+function timeSigMeta(timeSig){ return TIME_SIGNATURES[timeSig] || TIME_SIGNATURES["4/4"]; }
+function stepsPerMeasureFor(timeSig){ return timeSigMeta(timeSig).stepsPerMeasure; }
+
+const BLOCK_TYPES = {
+  INTRO:        {label:"Intro",       color:"#c9e8e4", text:"#0B2622"},
+  VERSE:       {label:"Verse",      color:"#94d1c9", text:"#04211D"},
+  "PRE-CHORUS": {label:"Pre-Chorus",  color:"#5ebaae", text:"#04211D"},
+  CHORUS:       {label:"Chorus",      color:"#369689", text:"#00231E"},
+  BRIDGE:       {label:"Bridge",      color:"#8B6FD6", text:"#F5F1FF"},
+  SOLO:         {label:"Solo",        color:"#F08A3C", text:"#2A1203"},
+  OUTRO:        {label:"Outro",       color:"#4A6670", text:"#E8F3F2"},
+  CUSTOM:       {label:"Custom",      color:"#f2d027", text:"#032018"}
+};
+const BLOCK_ORDER = ["INTRO","VERSE","PRE-CHORUS","CHORUS","BRIDGE","SOLO","OUTRO"];
+
+const FEELS = { straight:"Straight", shuffle:"Shuffle" };
+
+const LANE_TYPES = {
+  hh: { states: ['off', 'closed', 'open', 'crash'], default: 'off' },
+  snare: { states: ['off', 'hit', 'ghost', 'rimclick'], default: 'off' },
+  ghost: { states: ['off', 'on'], default: 'off' },
+  kick: { states: ['off', 'on'], default: 'off' },
+  tom: { states: ['off', 'on'], default: 'off' },
+  floortom: { states: ['off', 'on'], default: 'off' }
+};
+const ALL_LANES = ["hh","snare","ghost","kick","tom","floortom"];
+
+function getNextState(lane, currentState) {
+  const states = LANE_TYPES[lane]?.states || ['off', 'on'];
+  const idx = states.indexOf(currentState);
+  if (idx === -1) return states[0];
+  return states[(idx + 1) % states.length];
+}
+
+function isLaneActive(lane, state) {
+  const states = LANE_TYPES[lane]?.states || ['off', 'on'];
+  return state !== 'off' && states.includes(state);
+}
+
+/* ============================ STATE ============================ */
+let state = { charts: [], currentId: null };
+
+function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+function emptyGrid(stepCount){
+  const n = stepCount || 16;
+  return {
+    hh: new Array(n).fill('off'),
+    snare: new Array(n).fill('off'),
+    ghost: new Array(n).fill('off'),
+    kick: new Array(n).fill('off'),
+    tom: new Array(n).fill('off'),
+    floortom: new Array(n).fill('off')
+  };
+}
+function resizeLane(arr, stepCount){
+  const out = arr.slice(0, stepCount);
+  while(out.length < stepCount) out.push('off');
+  return out;
+}
+function ensureLanes(grid, stepCount){
+  const n = stepCount || (grid.hh ? grid.hh.length : 16) || 16;
+  ALL_LANES.forEach(lane=>{
+    if(!grid[lane]) grid[lane] = new Array(n).fill('off');
+    else if(grid[lane].length !== n) grid[lane] = resizeLane(grid[lane], n);
+  });
+  return grid;
+}
+function newGroove(stepCount){ return { measures: [emptyGrid(stepCount)], showToms:false }; }
+
+function newChart(){
+  return { id: uid(), title:"Nuovo Brano", artist:"", bpm:120, timeSig:"4/4", feel:"straight", mainGroove:newGroove(stepsPerMeasureFor("4/4")), blocks: [] };
+}
+function newBlock(type){
+  return { id: uid(), type, customLabel: type==="CUSTOM" ? "Custom" : "", bars:"4", notes:"", gridEnabled:false, groove:null, customColor:null };
+}
+function resizeGrooveToTimeSig(groove, timeSig){
+  if(!groove) return;
+  const n = stepsPerMeasureFor(timeSig);
+  groove.measures.forEach(g=>ensureLanes(g, n));
+}
+function grooveLosesNotes(groove, n){
+  if(!groove) return false;
+  return groove.measures.some(g=>ALL_LANES.some(l=>(g[l]||[]).slice(n).some(v=>v && v!=='off')));
+}
+function chartLosesNotes(chart, newTs){
+  const n = stepsPerMeasureFor(newTs);
+  return grooveLosesNotes(chart.mainGroove, n) || (chart.blocks||[]).some(b=>grooveLosesNotes(b.groove, n));
+}
+function blockCfg(block){
+  const cfg = BLOCK_TYPES[block.type] || BLOCK_TYPES.INTRO;
+  const label = block.type === "CUSTOM" ? (block.customLabel || "Custom") : cfg.label;
+  const color = block.customColor || cfg.color;
+  const text = block.customColor ? contrastTextColor(block.customColor) : cfg.text;
+  return { color, text, label };
+}
+// Ultimo colore personalizzato usato per un tipo di blocco nella chart corrente,
+// così il pulsante "+ Tipo" e i nuovi blocchi dello stesso tipo restano coerenti.
+function getTypeColorOverride(chart, type){
+  const matches = (chart.blocks || []).filter(b => b.type === type && b.customColor);
+  return matches.length ? matches[matches.length - 1].customColor : null;
+}
+function barsText(b){ return b === "-" ? "—" : b; }
+
+// ============= MIGRATION FUNCTIONS =============
+function migrateLaneValue(lane, value) {
+  if (typeof value === 'string') {
+    const states = LANE_TYPES[lane]?.states || ['off', 'on'];
+    if (states.includes(value)) return value;
+  }
+  if (typeof value === 'boolean') {
+    if (lane === 'hh') return value ? 'closed' : 'off';
+    if (lane === 'snare') return value ? 'hit' : 'off';
+    return value ? 'on' : 'off';
+  }
+  return 'off';
+}
+
+function migrateGrid(grid, stepCount) {
+  const newGrid = emptyGrid(stepCount);
+  ALL_LANES.forEach(lane => {
+    const old = grid[lane];
+    if (Array.isArray(old)) {
+      for (let i = 0; i < Math.min(old.length, stepCount); i++) {
+        newGrid[lane][i] = migrateLaneValue(lane, old[i]);
+      }
+    }
+  });
+  return newGrid;
+}
+
+function migrateChart(chart){
+  if(chart.timeSig === "6/8") chart.timeSig = "3/4";
+  if(!chart.timeSig || !TIME_SIGNATURES[chart.timeSig]) chart.timeSig = "4/4";
+  // Feel: i vecchi valori (8ths, 16ths, swing) confluiscono nei due attuali
+  chart.feel = (chart.feel === "shuffle" || chart.feel === "swing") ? "shuffle" : "straight";
+  const stepCount = stepsPerMeasureFor(chart.timeSig);
+
+  if(!chart.mainGroove){
+    chart.mainGroove = { measures:[ chart.mainGrid || emptyGrid(stepCount) ] };
+  }
+  delete chart.mainGrid;
+  if(chart.mainGroove.showToms === undefined) chart.mainGroove.showToms = false;
+
+  chart.mainGroove.measures = chart.mainGroove.measures.map((g) => {
+    if (g.hh && Array.isArray(g.hh) && typeof g.hh[0] === 'boolean') {
+      return migrateGrid(g, stepCount);
+    }
+    ensureLanes(g, stepCount);
+    return g;
+  });
+
+  if(chart.artist === undefined) chart.artist = "";
+
+  (chart.blocks || []).forEach(b=>{
+    if(b.gridEnabled && !b.groove){
+      b.groove = { measures:[ b.grid || emptyGrid(stepCount) ] };
+    }
+    delete b.grid;
+    if(b.groove){
+      if(b.groove.showToms === undefined) b.groove.showToms = false;
+      b.groove.measures = b.groove.measures.map((g) => {
+        if (g.hh && Array.isArray(g.hh) && typeof g.hh[0] === 'boolean') {
+          return migrateGrid(g, stepCount);
+        }
+        ensureLanes(g, stepCount);
+        return g;
+      });
+    }
+    if(b.customLabel === undefined) b.customLabel = b.type === "CUSTOM" ? "Custom" : "";
+    if(b.bars === undefined || b.bars === null) b.bars = "4";
+  });
+  return chart;
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && Array.isArray(parsed.charts)) state = parsed;
+    }
+  }catch(e){ console.error("Errore caricamento dati:", e); }
+
+  state.charts.forEach(migrateChart);
+
+  if(!state.charts.length){
+    const c = newChart();
+    state.charts.push(c);
+    state.currentId = c.id;
+  }
+  if(!state.currentId || !state.charts.find(c=>c.id===state.currentId)){
+    state.currentId = state.charts[0].id;
+  }
+  saveState();
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.error("Errore salvataggio dati:", e); }
+}
+function getCurrentChart(){ return state.charts.find(c=>c.id === state.currentId); }
+function getChartIndex(){ return state.charts.findIndex(c=>c.id === state.currentId); }
+function getChartCount(){ return state.charts.length; }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+function contrastTextColor(hex){
+  if(!hex || hex[0] !== "#" || hex.length !== 7) return "#0A0B0C";
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+  return luminance > 0.55 ? "#0A0B0C" : "#F5F7F6";
+}
+function lightenHex(hex, amt){
+  if(!hex || hex[0] !== "#" || hex.length !== 7) return hex;
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const mix = (c)=> Math.round(c + (255-c)*amt);
+  return "#" + [mix(r),mix(g),mix(b)].map(v=>v.toString(16).padStart(2,"0")).join("");
+}
+
+/* ============================ RHYTHM NOTATION (VexFlow) ============================ */
+const DUR_CHUNKS = [6,4,3,2,1];
+
+function computeBeatSegments(grid, beatIndex, stepsPerBeat){
+  const flags = [];
+  for(let i=0;i<stepsPerBeat;i++){
+    const idx = beatIndex*stepsPerBeat+i;
+    flags.push(!!(isLaneActive('kick', grid.kick[idx]) ||
+                  isLaneActive('snare', grid.snare[idx]) ||
+                  isLaneActive('ghost', grid.ghost[idx]) ||
+                  isLaneActive('hh', grid.hh[idx]) ||
+                  isLaneActive('tom', grid.tom[idx]) ||
+                  isLaneActive('floortom', grid.floortom[idx])));
+  }
+  const onsets = [];
+  flags.forEach((f,i)=>{ if(f) onsets.push(i); });
+  const rawSegments = [];
+  if(onsets.length === 0){
+    rawSegments.push({start:0, length:stepsPerBeat, isRest:true});
+  } else {
+    if(onsets[0] > 0) rawSegments.push({start:0, length:onsets[0], isRest:true});
+    for(let k=0;k<onsets.length;k++){
+      const start = onsets[k];
+      const end = (k+1 < onsets.length) ? onsets[k+1] : stepsPerBeat;
+      rawSegments.push({start, length:end-start, isRest:false});
+    }
+  }
+  const segments = [];
+  rawSegments.forEach(seg=>{
+    let remaining = seg.length;
+    let cursor = seg.start;
+    let first = true;
+    while(remaining > 0){
+      const chunk = DUR_CHUNKS.find(l=>l<=remaining) || 1;
+      segments.push({start:cursor, length:chunk, isRest: seg.isRest || !first});
+      cursor += chunk; remaining -= chunk; first = false;
+    }
+  });
+  return segments.map(s=>({ ...s, absStart: beatIndex*stepsPerBeat + s.start, beatIndex }));
+}
+
+// Un valore che attraversa la stanghetta del movimento si scrive con il punto:
+// nota + pausa = 3 sedicesimi -> croma puntata; da inizio movimento 6 sedicesimi -> semiminima puntata (nota o pausa).
+function mergeAcrossBeats(segs, spb){
+  for(let i = 0; i < segs.length - 1; i++){
+    const a = segs[i], c = segs[i+1];
+    const end = a.absStart + a.length;
+    if(end % spb !== 0 || c.absStart !== end || !c.isRest) continue;
+    const total = a.length + c.length;
+    if(total === 3 || (total === 6 && spb === 4 && a.absStart % spb === 0)){
+      a.length = total;
+      segs.splice(i + 1, 1);
+    }
+  }
+}
+
+function buildMeasure(VF, grid, beats, stepsPerBeat){
+  const built = [];
+  const allSegs = [];
+  for(let b=0; b<beats; b++) allSegs.push(...computeBeatSegments(grid, b, stepsPerBeat));
+  mergeAcrossBeats(allSegs, stepsPerBeat);
+  {
+    allSegs.forEach(seg=>{
+      const len = seg.length;
+      const isDotted = len === 3 || len === 6;
+      const base = {1:"16", 2:"8", 3:"8", 4:"4", 6:"4"}[len] || "16";
+      const dur = base + (seg.isRest ? "r" : "");
+      let note, ghostKeyIndex = -1, rimKeyIndex = -1, openHat = false;
+      if(seg.isRest){
+        note = new VF.StaveNote({ keys:["b/4"], duration:dur, stem_direction:1 });
+      } else {
+        const idx = seg.absStart;
+        const keys = [];
+
+        if(isLaneActive('kick', grid.kick[idx])) keys.push("f/4");
+        if(isLaneActive('floortom', grid.floortom[idx])) keys.push("a/4");
+
+        if(isLaneActive('snare', grid.snare[idx])) {
+          const sState = grid.snare[idx];
+          if(sState === 'ghost') {
+            ghostKeyIndex = keys.length;
+            keys.push("c/5");
+          } else {
+            const isRim = sState === 'rimclick';
+            if(isRim) {
+              keys.push("c/5/x2");
+              rimKeyIndex = keys.length - 1;
+            } else {
+              keys.push("c/5");
+            }
+          }
+        }
+
+        if(isLaneActive('tom', grid.tom[idx])) keys.push("d/5");
+
+        if(isLaneActive('hh', grid.hh[idx])) {
+          openHat = grid.hh[idx] === 'open';
+          keys.push(grid.hh[idx] === 'crash' ? "a/5/x2" : "g/5/x2");
+        }
+        if(keys.length === 0) keys.push("c/5");
+
+        note = new VF.StaveNote({
+          keys: keys,
+          duration: dur,
+          stem_direction: 1,
+          clef:"treble"
+        });
+        note.setStyle({ fillStyle:"#1A1A1A", strokeStyle:"#1A1A1A" });
+        note.ghostKeyIndex = ghostKeyIndex;
+        note.rimKeyIndex = rimKeyIndex;
+        note.openHat = openHat;
+      }
+
+      built.push({ vfNote:note, isRest:seg.isRest, dotted:isDotted, beatIndex:seg.beatIndex, ghostKeyIndex, rimKeyIndex, openHat, absStart:seg.absStart });
+    });
+  }
+  return built;
+}
+
+// align (solo editor): { width, centers[] } = larghezza del riquadro e centro x di ogni step della griglia, così le note cadono sopra i quadratini
+function drawGrid(containerId, grid, fixedWidth, timeSig, showTimeSig, responsive, align){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const ts = timeSig || "4/4";
+  const meta = timeSigMeta(ts);
+  const stepCount = meta.stepsPerMeasure;
+  ensureLanes(grid, stepCount);
+  el.innerHTML = "";
+  const outerWidth = align ? Math.max(180, align.width) : (fixedWidth ? Math.max(180, fixedWidth) : Math.max(240, (el.clientWidth || 240)));
+  const NOTATION_SCALE = 0.7;
+  const width = outerWidth / NOTATION_SCALE;
+  const tsParts = ts.split("/");
+  const tsReserve = (showTimeSig && !align) ? (24 + (tsParts[0]||"4").length*11) : 0;
+  const noteAreaWidth = Math.max(140, width - tsReserve);
+  try{
+    let VF = null;
+    if (typeof Vex !== "undefined" && Vex.Flow) {
+      VF = Vex.Flow;
+    } else if (typeof VexFlow !== "undefined") {
+      VF = VexFlow;
+    } else if (typeof window.Vex !== "undefined" && window.Vex.Flow) {
+      VF = window.Vex.Flow;
+    }
+
+    if (!VF) {
+      console.warn("VexFlow non disponibile, tentativo di caricamento...");
+      el.innerHTML = '<div style="color:#888; font-size:11px; padding:6px;">Caricamento notazione...</div>';
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/vexflow/4.2.3/vexflow-min.js';
+      script.onload = () => {
+        setTimeout(() => drawGrid(containerId, grid, fixedWidth, timeSig, showTimeSig, responsive, align), 100);
+      };
+      script.onerror = () => {
+        el.innerHTML = '<div style="color:#D9695F; font-size:12px; padding:6px;">Errore: impossibile caricare VexFlow. Verifica la connessione internet.</div>';
+      };
+      document.head.appendChild(script);
+      return;
+    }
+
+    const renderer = new VF.Renderer(el, VF.Renderer.Backends.SVG);
+    renderer.resize(outerWidth, Math.round(122 * NOTATION_SCALE));
+    const context = renderer.getContext();
+    context.scale(NOTATION_SCALE, NOTATION_SCALE);
+    context.setFillStyle("#1A1A1A");
+    context.setStrokeStyle("#1A1A1A");
+    const stave = align ? new VF.Stave(2, 32, width - 4) : new VF.Stave(4 + tsReserve, 32, noteAreaWidth - 10);
+    stave.setContext(context).draw();
+
+    if(showTimeSig){
+      context.save();
+      context.setFillStyle("#1A1A1A");
+      context.setFont("Georgia", 20, "");
+      context.fillText(tsParts[0]||"4", align ? 16 : 8, stave.getYForLine(1) + 6);
+      context.fillText(tsParts[1]||"4", align ? 16 : 8, stave.getYForLine(3) + 6);
+      context.restore();
+    }
+
+    const built = buildMeasure(VF, grid, meta.beats, meta.stepsPerBeat);
+
+    const cellWidth = stave.getWidth() / stepCount;
+    function positionNoteAt(vfNote, x){
+      const tc = new VF.TickContext();
+      tc.addTickable(vfNote);
+      tc.preFormat();
+      tc.setX(x);
+      vfNote.setStave(stave);
+      vfNote.setContext(context);
+    }
+    if(built.length > 0) {
+      built.forEach(item=>{
+        // l'offset interno cambia tra nota, pausa e nota puntata: lo misuro per ciascuna
+        positionNoteAt(item.vfNote, 0);
+        const measuredOffset = item.vfNote.getAbsoluteX() - stave.getX();
+        const gridX = align ? align.centers[item.absStart] : undefined;
+        const targetX = (gridX !== undefined)
+          ? (gridX / NOTATION_SCALE - 5 - stave.getX())
+          : item.absStart*cellWidth + cellWidth/2;
+        positionNoteAt(item.vfNote, targetX - measuredOffset);
+      });
+    }
+
+    const beams = [];
+    for(let b=0;b<meta.beats;b++){
+      const beatNotes = built.filter(it=>it.beatIndex===b && !it.isRest).map(it=>it.vfNote);
+      if(beatNotes.length > 1){
+        try{ beams.push(new VF.Beam(beatNotes)); }catch(e){}
+      }
+    }
+
+    built.forEach(item=>item.vfNote.draw());
+    beams.forEach(bm=>{ try{ bm.setStemDirection(1); }catch(e){} bm.setContext(context).draw(); });
+
+    context.setFillStyle("#1A1A1A");
+    context.setFont("Georgia", 12, "");
+
+    // Il cerchietto dell'hi-hat aperto sta sopra la punta di tutti i gambi/travi, sempre alla stessa altezza
+    let minTop = Infinity;
+    built.forEach(it=>{
+      if(it.isRest) return;
+      try{ const ex = it.vfNote.getStemExtents(); if(ex && ex.topY < minTop) minTop = ex.topY; }catch(e){}
+    });
+    const circleY = Math.max(9, (isFinite(minTop) ? minTop : stave.getYForLine(0) - 30) - 11);
+
+    built.forEach(item=>{
+      // Punto di valore: disegnato a mano (non dipende dal punto interno di VexFlow)
+      if(item.dotted){
+        try{
+          let endX;
+          try{ endX = item.vfNote.getNoteHeadEndX(); }catch(inner){ endX = item.vfNote.getAbsoluteX() + 8; }
+          const spacing = stave.getSpacingBetweenLines();
+          const y0 = stave.getYForLine(0);
+          const dotYs = item.isRest
+            ? [stave.getYForLine(2) - spacing/2]
+            : item.vfNote.getYs().map(y=>{
+                const rel = (y - y0) / spacing;
+                return Math.abs(rel - Math.round(rel)) < 0.15 ? y - spacing/2 : y;   // su una linea: il punto va nello spazio sopra
+              });
+          context.setFillStyle("#1A1A1A");
+          dotYs.forEach(dy=>{
+            context.beginPath();
+            context.arc(endX + 5.5, dy, 3, 0, Math.PI * 2, false);
+            context.fill();
+          });
+        }catch(e){}
+      }
+      // Ghost note: parentesi
+      if(item.ghostKeyIndex >= 0){
+        try{
+          const ys = item.vfNote.getYs();
+          const y = ys[item.ghostKeyIndex] || ys[0];
+          let leftX, rightX;
+          try{
+            leftX = item.vfNote.getNoteHeadBeginX();
+            rightX = item.vfNote.getNoteHeadEndX();
+          }catch(inner){
+            const ax = item.vfNote.getAbsoluteX();
+            leftX = ax - 4; rightX = ax + 4;
+          }
+          context.setFillStyle("#1A1A1A");
+          context.fillText("(", leftX - 7, y + 3);
+          context.fillText(")", rightX + 2, y + 3);
+        }catch(e){}
+      }
+
+      // Hi-hat aperto: cerchio sopra il pentagramma
+      if(item.openHat){
+        try{
+          let leftX, rightX;
+          try{
+            leftX = item.vfNote.getNoteHeadBeginX();
+            rightX = item.vfNote.getNoteHeadEndX();
+          }catch(inner){
+            const ax = item.vfNote.getAbsoluteX();
+            leftX = ax - 4; rightX = ax + 4;
+          }
+          const cx = (leftX + rightX) / 2;
+          context.setStrokeStyle("#1A1A1A");
+          context.setFillStyle("transparent");
+          context.setLineWidth(1.5);
+          context.beginPath();
+          context.arc(cx, circleY, 4.5, 0, Math.PI * 2);
+          context.stroke();
+        }catch(e){}
+      }
+    });
+
+    if(responsive){
+      const svgEl = el.querySelector("svg");
+      if(svgEl){
+        if(!svgEl.getAttribute("viewBox")){
+          const svgH = Math.round(122 * NOTATION_SCALE);
+          svgEl.setAttribute("viewBox", `0 0 ${outerWidth} ${svgH}`);
+        }
+        svgEl.removeAttribute("width");
+        svgEl.removeAttribute("height");
+        svgEl.style.width = "100%";
+        svgEl.style.height = "auto";
+        svgEl.style.display = "block";
+        svgEl.setAttribute("preserveAspectRatio", "xMinYMid meet");
+      }
+    }
+  }catch(err){
+    console.error("Rendering VexFlow fallito:", err);
+    el.innerHTML = '<div style="color:#888; font-size:11px; padding:6px;">Notazione non disponibile.</div>';
+  }
+}
+
+/* ============================ AUDIO PLAYBACK ============================ */
+let audioCtx = null;
+let drumSamples = null;
+
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function createNoiseBuffer(ctx, seconds){
+  const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i=0;i<bufferSize;i++) data[i] = Math.random()*2-1;
+  return buffer;
+}
+
+function renderOfflineBuffer(duration, buildFn){
+  const OfflineCtxClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const sampleRate = getAudioCtx().sampleRate;
+  const ctx = new OfflineCtxClass(1, Math.ceil(sampleRate * duration), sampleRate);
+  buildFn(ctx);
+  return ctx.startRendering();
+}
+
+function renderKickBuffer(){
+  return renderOfflineBuffer(0.42, (ctx)=>{
+    const out = ctx.destination;
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(165, 0);
+    osc.frequency.exponentialRampToValueAtTime(48, 0.13);
+    const oGain = ctx.createGain();
+    oGain.gain.setValueAtTime(1.0, 0);
+    oGain.gain.exponentialRampToValueAtTime(0.001, 0.38);
+    osc.connect(oGain).connect(out);
+    osc.start(0); osc.stop(0.4);
+
+    const sub = ctx.createOscillator();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(85, 0);
+    sub.frequency.exponentialRampToValueAtTime(40, 0.2);
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.55, 0);
+    subGain.gain.exponentialRampToValueAtTime(0.001, 0.32);
+    sub.connect(subGain).connect(out);
+    sub.start(0); sub.stop(0.35);
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, 0.02);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.8;
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.55, 0);
+    nGain.gain.exponentialRampToValueAtTime(0.001, 0.02);
+    noise.connect(bp).connect(nGain).connect(out);
+    noise.start(0);
+  });
+}
+
+function renderSnareBuffer(ghost){
+  const duration = ghost ? 0.16 : 0.24;
+  return renderOfflineBuffer(duration, (ctx)=>{
+    const out = ctx.destination;
+    const vol = ghost ? 0.4 : 1.0;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, duration);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 0.55;
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 650;
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.9 * vol, 0);
+    nGain.gain.exponentialRampToValueAtTime(0.001, duration * (ghost ? 0.55 : 0.78));
+    noise.connect(bp).connect(hp).connect(nGain).connect(out);
+    noise.start(0);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(195, 0);
+    osc.frequency.exponentialRampToValueAtTime(150, duration * 0.5);
+    const oGain = ctx.createGain();
+    oGain.gain.setValueAtTime(0.32 * vol, 0);
+    oGain.gain.exponentialRampToValueAtTime(0.001, duration * 0.55);
+    osc.connect(oGain).connect(out);
+    osc.start(0); osc.stop(duration);
+  });
+}
+
+function renderRimClickBuffer(){
+  const duration = 0.06;
+  return renderOfflineBuffer(duration, (ctx)=>{
+    const out = ctx.destination;
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, duration);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 2800;
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.55, 0);
+    nGain.gain.exponentialRampToValueAtTime(0.001, duration * 0.7);
+    noise.connect(hp).connect(nGain).connect(out);
+    noise.start(0);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = 1700;
+    const oGain = ctx.createGain();
+    oGain.gain.setValueAtTime(0.28, 0);
+    oGain.gain.exponentialRampToValueAtTime(0.001, duration * 0.4);
+    osc.connect(oGain).connect(out);
+    osc.start(0); osc.stop(duration);
+  });
+}
+
+function renderHatBuffer(open){
+  const duration = open ? 0.9 : 0.1;
+  return renderOfflineBuffer(duration, (ctx)=>{
+    const out = ctx.destination;
+
+    const ratios = [1, 1.342, 1.2312, 1.6532, 1.9542, 2.1432, 2.9411];
+    const baseFreq = 240;
+    const oscBus = ctx.createGain();
+    ratios.forEach(r=>{
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = baseFreq * r;
+      osc.connect(oscBus);
+      osc.start(0); osc.stop(duration);
+    });
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = open ? 6200 : 7800;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 10000; bp.Q.value = 0.6;
+
+    const envGain = ctx.createGain();
+    if(open){
+      envGain.gain.setValueAtTime(0.5, 0);
+      envGain.gain.exponentialRampToValueAtTime(0.16, 0.28);
+      envGain.gain.exponentialRampToValueAtTime(0.001, duration);
+    } else {
+      envGain.gain.setValueAtTime(0.55, 0);
+      envGain.gain.exponentialRampToValueAtTime(0.001, duration * 0.85);
+    }
+    oscBus.connect(hp).connect(bp).connect(envGain).connect(out);
+  });
+}
+
+function renderCrashBuffer(){
+  const duration = 1.5;
+  return renderOfflineBuffer(duration, (ctx)=>{
+    const out = ctx.destination;
+    const ratios = [1, 1.342, 1.2312, 1.6532, 1.9542, 2.1432, 2.9411];
+    const oscBus = ctx.createGain();
+    ratios.forEach(r=>{
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = 300 * r;
+      osc.connect(oscBus);
+      osc.start(0); osc.stop(duration);
+    });
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, duration);
+    const nGain = ctx.createGain();
+    nGain.gain.value = 0.5;
+    noise.connect(nGain).connect(oscBus);
+    noise.start(0);
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 3800;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 7500; bp.Q.value = 0.4;
+    const envGain = ctx.createGain();
+    envGain.gain.setValueAtTime(0.6, 0);
+    envGain.gain.exponentialRampToValueAtTime(0.25, 0.15);
+    envGain.gain.exponentialRampToValueAtTime(0.001, duration);
+    oscBus.connect(hp).connect(bp).connect(envGain).connect(out);
+  });
+}
+
+function renderTomBuffer(freq){
+  const duration = 0.3;
+  return renderOfflineBuffer(duration, (ctx)=>{
+    const out = ctx.destination;
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq * 1.4, 0);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.85, 0.15);
+    const oGain = ctx.createGain();
+    oGain.gain.setValueAtTime(0.9, 0);
+    oGain.gain.exponentialRampToValueAtTime(0.001, duration);
+    osc.connect(oGain).connect(out);
+    osc.start(0); osc.stop(duration);
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = createNoiseBuffer(ctx, 0.05);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 1200;
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.25, 0);
+    nGain.gain.exponentialRampToValueAtTime(0.001, 0.05);
+    noise.connect(lp).connect(nGain).connect(out);
+    noise.start(0);
+  });
+}
+
+function loadDrumSamples() {
+  if (drumSamples) return Promise.resolve(drumSamples);
+
+  return Promise.all([
+    renderKickBuffer(),
+    renderSnareBuffer(false),
+    renderSnareBuffer(true),
+    renderRimClickBuffer(),
+    renderHatBuffer(false),
+    renderHatBuffer(true),
+    renderCrashBuffer(),
+    renderTomBuffer(150),
+    renderTomBuffer(250),
+    renderTomBuffer(380)
+  ]).then(([kick, snare, snareGhost, rimclick, hatClosed, hatOpen, crash, tomLow, tomMid, tomHigh]) => {
+    drumSamples = { kick, snare, snareGhost, rimclick, hatClosed, hatOpen, crash, tomLow, tomMid, tomHigh };
+    return drumSamples;
+  });
+}
+
+function playSample(ctx, master, time, sampleName, volume = 1.0) {
+  if (!drumSamples || !drumSamples[sampleName]) return;
+
+  const buffer = drumSamples[sampleName];
+  if (!buffer) return;
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+
+  const gain = ctx.createGain();
+  const vol = Math.min(volume, 1.0);
+  gain.gain.setValueAtTime(vol * 0.8, time);
+  gain.gain.exponentialRampToValueAtTime(0.001, time + buffer.duration);
+
+  source.connect(gain);
+  gain.connect(master);
+  source.start(time);
+  source.stop(time + buffer.duration + 0.02);
+}
+
+function playKick(ctx, master, time) {
+  playSample(ctx, master, time, 'kick', 1.0);
+}
+
+function playSnareLike(ctx, master, time, ghost, rim) {
+  if (rim) {
+    playSample(ctx, master, time, 'rimclick', 0.8);
+  } else if (ghost) {
+    playSample(ctx, master, time, 'snareGhost', 0.7);
+  } else {
+    playSample(ctx, master, time, 'snare', 0.9);
+  }
+}
+
+function playHat(ctx, master, time, open) {
+  if (open) {
+    playSample(ctx, master, time, 'hatOpen', 0.7);
+  } else {
+    playSample(ctx, master, time, 'hatClosed', 0.7);
+  }
+}
+
+function playTom(ctx, master, time, tomType) {
+  const volume = 0.8;
+  switch(tomType) {
+    case 'tomLow': playSample(ctx, master, time, 'tomLow', volume); break;
+    case 'tomMid': playSample(ctx, master, time, 'tomMid', volume); break;
+    case 'tomHigh': playSample(ctx, master, time, 'tomHigh', volume); break;
+    default: playSample(ctx, master, time, 'tomMid', volume);
+  }
+}
+
+let playbackState = { playing:false, timeoutIds:[], intervalIds:[], activeButton:null, activeLabel:"", master:null, key:"" };
+
+function clearPlayheadHighlights(){
+  document.querySelectorAll(".playing-step").forEach(el=>el.classList.remove("playing-step"));
+}
+function highlightStep(hostEl, globalStep, stepsPerMeasure){
+  if(!hostEl) return;
+  const measureBlocks = hostEl.querySelectorAll(".measure-block");
+  measureBlocks.forEach((mb, mIdx)=>{
+    const localStep = globalStep - mIdx*stepsPerMeasure;
+    mb.querySelectorAll(".grid-cells").forEach(laneCells=>{
+      Array.from(laneCells.children).forEach((cell,i)=>{
+        cell.classList.toggle("playing-step", i === localStep);
+      });
+    });
+  });
+}
+
+function stopPlayback(){
+  playbackState.playing = false;
+  playbackState.timeoutIds.forEach(id=>clearTimeout(id));
+  playbackState.timeoutIds = [];
+  playbackState.intervalIds.forEach(id=>clearInterval(id));
+  playbackState.intervalIds = [];
+  clearPlayheadHighlights();
+  if(playbackState.master){
+    try{
+      const ctx = getAudioCtx();
+      playbackState.master.gain.cancelScheduledValues(ctx.currentTime);
+      playbackState.master.gain.setValueAtTime(0, ctx.currentTime);
+    }catch(e){}
+  }
+  if(playbackState.activeButton){ playbackState.activeButton.textContent = playbackState.activeLabel || "Ascolta"; playbackState.activeButton.classList.remove("playing"); }
+  playbackState.activeButton = null;
+  playbackState.activeLabel = "";
+  playbackState.key = "";
+}
+
+// getCfg() viene riletta a ogni giro: note, BPM e battute modificati durante l'ascolto si sentono dal giro successivo.
+function playMeasures(getCfg, btnEl, key, getHost){
+  stopPlayback();
+  const ctx = getAudioCtx();
+  if(ctx.state === "suspended") ctx.resume();
+
+  loadDrumSamples().then(() => {
+    const master = ctx.createGain();
+    master.gain.value = 0.9;
+    master.connect(ctx.destination);
+    playbackState.master = master;
+    playbackState.playing = true;
+    playbackState.activeButton = btnEl;
+    playbackState.activeLabel = btnEl.textContent;
+    playbackState.key = key;
+    btnEl.textContent = "Stop"; btnEl.classList.add("playing");
+
+    let nextStart = ctx.currentTime + 0.05;
+
+    function scheduleLoop(){
+      if(!playbackState.playing) return;
+      const cfg = getCfg();
+      if(!cfg || !cfg.measures || !cfg.measures.length){ stopPlayback(); return; }
+      const measures = cfg.measures;
+      const meta = timeSigMeta(cfg.timeSig);
+      const stepsPerMeasure = meta.stepsPerMeasure;
+      // Il BPM si riferisce al "beat" del metro: 4 step in 4/4 e 3/4, 6 step in 6/8 e 12/8
+      const stepDur = (60 / Math.max(20, cfg.bpm)) / meta.stepsPerBeat;
+      const totalSteps = measures.length * stepsPerMeasure;
+      const startTime = Math.max(nextStart, ctx.currentTime + 0.02);
+      // Shuffle: la seconda metà di ogni movimento cade a 2/3 invece che a 1/2 (terzina); gli step intermedi seguono in proporzione.
+      // Vale per 4/4 e 3/4; 6/8 e 12/8 sono già ternari.
+      const spb = meta.stepsPerBeat;
+      const swing = cfg.feel === "shuffle" && spb === 4;
+      const beatDur = stepDur * spb;
+      const stepOffset = (g)=>{
+        const beat = Math.floor(g / spb), frac = (g % spb) / spb;
+        const w = !swing ? frac : (frac < 0.5 ? frac * (4/3) : 2/3 + (frac - 0.5) * (2/3));
+        return (beat + w) * beatDur;
+      };
+
+      measures.forEach((grid, mIdx)=>{
+        for(let i=0;i<stepsPerMeasure;i++){
+          const t = startTime + stepOffset(mIdx*stepsPerMeasure + i);
+
+          if(isLaneActive('kick', grid.kick[i])) playKick(ctx, master, t);
+          if(isLaneActive('snare', grid.snare[i])) {
+            const sState = grid.snare[i];
+            playSnareLike(ctx, master, t, sState === 'ghost', sState === 'rimclick');
+          }
+          if(isLaneActive('hh', grid.hh[i])) {
+            const hv = grid.hh[i];
+            if(hv === 'crash') playSample(ctx, master, t, 'crash', 0.8);
+            else playHat(ctx, master, t, hv === 'open');
+          }
+          if(isLaneActive('tom', grid.tom[i])) playTom(ctx, master, t, 'tomMid');
+          if(isLaneActive('floortom', grid.floortom[i])) playTom(ctx, master, t, 'tomLow');
+        }
+      });
+
+      // Evidenziazione del passo corrente, allineata ai tempi reali (anche in shuffle)
+      for(let g = 0; g < totalSteps; g++){
+        const d = Math.max(0, (startTime + stepOffset(g) - ctx.currentTime) * 1000);
+        playbackState.timeoutIds.push(setTimeout(()=>{
+          if(playbackState.playing) highlightStep(getHost ? getHost() : null, g, stepsPerMeasure);
+        }, d));
+      }
+
+      // Il giro successivo viene pianificato poco prima della fine di questo, rileggendo i dati aggiornati
+      nextStart = startTime + totalSteps*stepDur;
+      const delay = Math.max(0, (nextStart - ctx.currentTime - 0.12) * 1000);
+      playbackState.timeoutIds.push(setTimeout(scheduleLoop, delay));
+    }
+    scheduleLoop();
+  }).catch(err => {
+    console.error("Errore caricamento campioni:", err);
+    alert("Errore nel caricamento dei suoni. Verifica la connessione internet.");
+  });
+}
+
+function scrollToMeasure(hostEl, index){
+  const row = hostEl.querySelector(".measures-row");
+  const target = row && row.children[index];
+  if(target) target.scrollIntoView({behavior:"smooth", inline:"end", block:"nearest"});
+}
+
+function renderGrooveEditor(hostEl, groove, idPrefix, onChange, accentColor, titleLabel, timeSig, showTimeSigGlyph, canDeleteLast, onEmpty){
+  const ts = timeSig || "4/4";
+  const meta = timeSigMeta(ts);
+  const stepCount = meta.stepsPerMeasure;
+  hostEl.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "groove-editor";
+
+  const rerender = ()=> renderGrooveEditor(hostEl, groove, idPrefix, onChange, accentColor, titleLabel, ts, showTimeSigGlyph, canDeleteLast, onEmpty);
+
+  if(titleLabel){
+    const t = document.createElement("div");
+    t.className = "groove-title";
+    t.textContent = titleLabel;
+    wrap.appendChild(t);
+  }
+
+  const baseLanes = [["hh","Hi-Hat"],["snare","Rullante"],["kick","Cassa"]];
+  const tomLanes = [["hh","Hi-Hat"],["tom","Tom"],["snare","Rullante"],["floortom","Timpano"],["kick","Cassa"]];
+  const lanes = groove.showToms ? tomLanes : baseLanes;
+
+  const measuresRow = document.createElement("div");
+  measuresRow.className = "measures-row";
+  const measureDivs = [];
+  const redraws = [];
+
+  groove.measures.forEach((grid, mIdx)=>{
+    ensureLanes(grid, stepCount);
+    const mDiv = document.createElement("div");
+    mDiv.className = "measure-block";
+    measureDivs.push(mDiv);
+
+    const head = document.createElement("div");
+    head.className = "measure-head";
+
+    const span = document.createElement("span");
+    span.textContent = `Battuta ${mIdx+1}`;
+    head.appendChild(span);
+
+    const actions = document.createElement("div");
+    actions.className = "measure-actions";
+
+// + : inserisce una battuta vuota subito dopo questa
+const addBtn = document.createElement("button");
+addBtn.textContent = "+";
+addBtn.className = "del";
+addBtn.title = "Aggiungi una battuta vuota subito dopo";
+addBtn.addEventListener("click", (e)=>{
+  e.stopPropagation();
+  groove.measures.splice(mIdx + 1, 0, emptyGrid(stepCount));
+  onChange();
+  rerender();
+  scrollToMeasure(hostEl, mIdx + 1);
+});
+actions.appendChild(addBtn);
+
+    // Duplica: inserisce una copia di questa battuta subito dopo
+    const dupBtn = document.createElement("button");
+    dupBtn.textContent = "Duplica";
+    dupBtn.title = "Aggiungi una copia di questa battuta subito dopo";
+    dupBtn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      const src = groove.measures[mIdx];
+      const copy = emptyGrid(stepCount);
+      Object.keys(copy).forEach(lane => { copy[lane] = src[lane].slice(); });
+      groove.measures.splice(mIdx + 1, 0, copy);
+      onChange();
+      rerender();
+      scrollToMeasure(hostEl, mIdx + 1);
+    });
+    actions.appendChild(dupBtn);
+
+    if(groove.measures.length > 1 || canDeleteLast){
+      const delBtn = document.createElement("button");
+      delBtn.className = "del";
+      delBtn.textContent = "×";
+      delBtn.title = "Elimina battuta";
+      delBtn.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        groove.measures.splice(mIdx,1);
+        onChange();
+        if(groove.measures.length === 0 && onEmpty){ onEmpty(); return; }
+        rerender();
+      });
+      actions.appendChild(delBtn);
+    }
+
+    head.appendChild(actions);
+    mDiv.appendChild(head);
+
+    const notationBox = document.createElement("div");
+    notationBox.className = "notation-box compact";
+    const notationRow = document.createElement("div");
+    notationRow.className = "notation-row";
+    const notationInner = document.createElement("div");
+    notationInner.className = "notation-canvas";
+    const notationId = `${idPrefix}-notation-${mIdx}`;
+    notationInner.id = notationId;
+    notationRow.appendChild(notationInner);
+    notationBox.appendChild(notationRow);
+    mDiv.appendChild(notationBox);
+    // Ridisegna la notazione allineata ai quadratini della griglia sotto
+    const redrawMeasure = ()=>{
+      const cellsEl = mDiv.querySelector(".grid-row:not(.count-row) .grid-cells");
+      const bl = notationBox.getBoundingClientRect();
+      const centers = cellsEl ? Array.from(cellsEl.children).map(c=>{ const r = c.getBoundingClientRect(); return r.left - bl.left + r.width/2; }) : [];
+      drawGrid(notationId, grid, null, ts, showTimeSigGlyph && mIdx===0, false, { width:Math.floor(bl.width), centers });
+    };
+    redraws.push(redrawMeasure);
+
+    const rowsDiv = document.createElement("div");
+    const cnt = document.createElement("div");
+    cnt.className = "grid-row count-row";
+    let cntHtml = "";
+    for(let i = 0; i < stepCount; i++){
+      const pos = i % meta.stepsPerBeat, beat = Math.floor(i / meta.stepsPerBeat) + 1;
+      const labels = meta.stepsPerBeat === 4 ? [String(beat), "e", "&", "a"] : [String(beat), "", "la", "", "li", ""];
+      const cls = "cnt-cell" + (pos === 0 ? " strong" : "") + ((i + 1) % meta.stepsPerBeat === 0 && i !== stepCount - 1 ? " beat-end" : "");
+      cntHtml += `<span class="${cls}">${labels[pos]}</span>`;
+    }
+    cnt.innerHTML = `<div class="row-label"></div><div class="grid-cells">${cntHtml}</div>`;
+    rowsDiv.appendChild(cnt);
+    lanes.forEach(([key,label])=>{
+      const row = document.createElement("div");
+      row.className = "grid-row";
+      row.innerHTML = `<div class="row-label">${label}</div><div class="grid-cells"></div>`;
+      rowsDiv.appendChild(row);
+      const cellsWrap = row.querySelector(".grid-cells");
+      for(let i=0;i<stepCount;i++){
+        const btn = document.createElement("button");
+        const sState = grid[key][i] || 'off';
+        const cls = ["step-btn"];
+        if(sState !== 'off') cls.push("on");
+        if(sState === 'open') cls.push("open");
+        if(sState === 'ghost') cls.push("ghost");
+        if(sState === 'rimclick') cls.push("rimclick");
+        if(sState === 'crash') cls.push("crash");
+        if(i % meta.stepsPerBeat === 0) cls.push("beat-start");
+        if((i+1) % meta.stepsPerBeat === 0 && i !== stepCount-1) cls.push("beat-end");
+        btn.className = cls.join(" ");
+        btn.setAttribute("data-lane", key);
+        btn.setAttribute("data-state", sState);
+        btn.addEventListener("click", ()=>{
+          const currentState = grid[key][i] || 'off';
+          const nextState = getNextState(key, currentState);
+          grid[key][i] = nextState;
+          btn.className = "step-btn";
+          if(nextState !== 'off') btn.classList.add("on");
+          if(nextState === 'open') btn.classList.add("open");
+          if(nextState === 'ghost') btn.classList.add("ghost");
+          if(nextState === 'rimclick') btn.classList.add("rimclick");
+          if(nextState === 'crash') btn.classList.add("crash");
+          if(i % meta.stepsPerBeat === 0) btn.classList.add("beat-start");
+          if((i+1) % meta.stepsPerBeat === 0 && i !== stepCount-1) btn.classList.add("beat-end");
+          btn.setAttribute("data-state", nextState);
+          onChange();
+          redrawMeasure();
+        });
+        cellsWrap.appendChild(btn);
+      }
+    });
+    mDiv.appendChild(rowsDiv);
+    measuresRow.appendChild(mDiv);
+  });
+
+  wrap.appendChild(measuresRow);
+
+  if(idPrefix === "main"){
+    const legend = document.createElement("div");
+    legend.className = "grid-legend";
+    legend.textContent = "Tocca più volte un passo per cambiarlo — Hi-Hat: chiuso › aperto › crash · Rullante: colpo › ghost › rim.";
+    wrap.appendChild(legend);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "groove-actions";
+
+  const addBarBtn = document.createElement("button");
+  addBarBtn.textContent = "+ Battuta";
+  addBarBtn.addEventListener("click", ()=>{
+    groove.measures.push(emptyGrid(stepCount));
+    onChange();
+    rerender();
+    scrollToMeasure(hostEl, groove.measures.length - 1);
+  });
+
+  const playBtn = document.createElement("button");
+  playBtn.className = "play-btn"; playBtn.textContent = "Ascolta";
+  playBtn.addEventListener("click", ()=>{
+    if(playbackState.playing && playbackState.activeButton === playBtn){ stopPlayback(); }
+    else {
+      playMeasures(()=>{
+        const ch = getCurrentChart() || {bpm:120, timeSig:ts};
+        return { measures:groove.measures, bpm:ch.bpm, timeSig:ch.timeSig, feel:ch.feel };
+      }, playBtn, idPrefix, ()=>hostEl.querySelector(".measures-row"));
+    }
+  });
+  // Se questo editor è in riproduzione e viene ridisegnato, il nuovo pulsante resta collegato
+  if(playbackState.playing && playbackState.key === idPrefix){
+    playbackState.activeButton = playBtn;
+    playBtn.textContent = "Stop"; playBtn.classList.add("playing");
+  }
+
+  const tomBtn = document.createElement("button");
+  tomBtn.textContent = groove.showToms ? "Nascondi Tom/Timpano" : "+ Tom/Timpano";
+  tomBtn.addEventListener("click", ()=>{
+    groove.showToms = !groove.showToms;
+    onChange();
+    rerender();
+  });
+
+  const clearBtn = document.createElement("button");
+  clearBtn.className = "danger"; clearBtn.textContent = "Clear";
+  armConfirmDelete(clearBtn, ()=>{
+    groove.measures.forEach(g=>{
+      Object.keys(g).forEach(lane=>{
+        g[lane] = new Array(stepCount).fill('off');
+      });
+    });
+    onChange();
+    rerender();
+  });
+
+  actions.append(addBarBtn, playBtn, tomBtn, clearBtn);
+  wrap.appendChild(actions);
+  hostEl.appendChild(wrap);
+
+  redraws.forEach(fn=>fn());
+}
+
+function armConfirmDelete(btn, onConfirm){
+  let timeoutId = null;
+  const originalText = btn.textContent;
+  btn.addEventListener("click", (e)=>{
+    e.stopPropagation();
+    if(btn.classList.contains("confirming")){
+      clearTimeout(timeoutId);
+      btn.classList.remove("confirming");
+      btn.textContent = originalText;
+      onConfirm();
+    } else {
+      btn.classList.add("confirming");
+      btn.textContent = "Sicuro?";
+      timeoutId = setTimeout(()=>{
+        btn.classList.remove("confirming");
+        btn.textContent = originalText;
+      }, 2800);
+    }
+  });
+}
+
+/* ============================ SIDEBAR (mobile drawer) ============================ */
+function openSidebar(){ document.getElementById("sidebar").classList.add("open"); document.getElementById("overlay").classList.add("show"); }
+function closeSidebar(){ document.getElementById("sidebar").classList.remove("open"); document.getElementById("overlay").classList.remove("show"); }
+
+/* ============================ RENDER: SIDEBAR ============================ */
+function moveChart(id, dir){
+  const i = state.charts.findIndex(c=>c.id===id);
+  const j = i + dir;
+  if(i < 0 || j < 0 || j >= state.charts.length) return;
+  const [c] = state.charts.splice(i,1);
+  state.charts.splice(j,0,c);
+  saveState(); renderSidebar(); updateNavLabel();
+}
+
+function duplicateCurrentChart(){
+  const chart = getCurrentChart();
+  if(!chart) return;
+  stopPlayback();
+  const copy = JSON.parse(JSON.stringify(chart));
+  copy.id = uid();
+  copy.title = (chart.title || "Senza titolo") + " (copia)";
+  (copy.blocks || []).forEach(b=>{ b.id = uid(); });
+  const idx = getChartIndex();
+  state.charts.splice(idx + 1, 0, copy);
+  state.currentId = copy.id;
+  saveState(); renderSidebar(); renderEditor(); closeSidebar();
+}
+
+function renderSidebar(){
+  const list = document.getElementById("chartList");
+  list.innerHTML = "";
+  if(!state.charts.length){ list.innerHTML = '<div class="empty-state">Nessuna chart. Creane una!</div>'; return; }
+  state.charts.forEach((c, i)=>{
+    const selected = c.id === state.currentId;
+    const item = document.createElement("div");
+    item.className = "chart-item" + (selected ? " selected" : "");
+    item.innerHTML = `
+      <div style="flex:1; min-width:0;" data-select="${c.id}">
+        <div class="ci-name">${escapeHtml(c.title || "Senza titolo")}</div>
+        <div class="ci-meta">${c.bpm} BPM · ${c.timeSig}</div>
+      </div>
+      ${selected ? `<button class="ghost small mv" data-up title="Sposta su" ${i===0?"disabled":""}>↑</button><button class="ghost small mv" data-down title="Sposta giù" ${i===state.charts.length-1?"disabled":""}>↓</button>` : ""}
+      <button class="ghost small" data-delete="${c.id}" title="Elimina">×</button>
+    `;
+    item.querySelector("[data-select]").addEventListener("click", ()=>{
+      stopPlayback();
+      state.currentId = c.id; saveState(); renderSidebar(); renderEditor(); closeSidebar();
+    });
+    if(selected){
+      item.querySelector("[data-up]").addEventListener("click", (e)=>{ e.stopPropagation(); moveChart(c.id, -1); });
+      item.querySelector("[data-down]").addEventListener("click", (e)=>{ e.stopPropagation(); moveChart(c.id, 1); });
+    }
+    armConfirmDelete(item.querySelector("[data-delete]"), ()=>{
+      stopPlayback();
+      state.charts = state.charts.filter(x=>x.id !== c.id);
+      if(!state.charts.length){ const nc = newChart(); state.charts.push(nc); state.currentId = nc.id; }
+      else if(state.currentId === c.id){ state.currentId = state.charts[0].id; }
+      saveState(); renderSidebar(); renderEditor();
+    });
+    list.appendChild(item);
+  });
+}
+
+/* ============================ RENDER: EDITOR ============================ */
+function renderEditor(){
+  const chart = getCurrentChart();
+  const panel = document.getElementById("editorPanel");
+  document.querySelector("#topbar .tb-title").innerHTML = chart ? escapeHtml(chart.title) : `QuickChart <span>Drummer</span>`;
+  if(!chart){ panel.innerHTML = '<div class="empty-state">Seleziona o crea una chart.</div>'; return; }
+
+  panel.innerHTML = `
+    <div class="card">
+      <input class="hdr-title" id="titleInput" type="text" placeholder="Titolo brano" aria-label="Titolo brano" value="${escapeHtml(chart.title)}">
+      <input class="hdr-artist" id="artistInput" type="text" placeholder="Artista (opzionale)" aria-label="Artista" value="${escapeHtml(chart.artist||"")}">
+      <div class="hdr-row">
+        <div class="bpm-box"><label for="bpmInput">BPM</label>
+          <div class="bpm-ctl">
+            <button id="bpmMinus" aria-label="BPM meno">−</button>
+            <input id="bpmInput" type="number" inputmode="numeric" min="20" max="320" value="${chart.bpm}">
+            <button id="bpmPlus" aria-label="BPM più">+</button>
+          </div>
+        </div>
+        <div><label for="timeSigSelect">Metro</label>
+          <select id="timeSigSelect">${Object.keys(TIME_SIGNATURES).map(t=>`<option value="${t}" ${chart.timeSig===t?"selected":""}>${t}</option>`).join("")}</select>
+        </div>
+        ${timeSigMeta(chart.timeSig).stepsPerBeat === 4 ? `<div><label>Feel</label>
+          <div class="seg" id="feelSeg" role="group" aria-label="Feel">
+            ${Object.entries(FEELS).map(([k,v])=>`<button data-feel="${k}" class="${chart.feel===k?"on":""}">${v}</button>`).join("")}
+          </div>
+        </div>` : ""}
+      </div>
+      <div class="warn" id="tsWarn" hidden>
+        <span data-msg></span>
+        <div class="warn-btns"><button class="small" id="tsNo">Annulla</button><button class="small danger" id="tsOk">Conferma</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Main Groove <button class="small" id="btnCounts" title="Mostra o nascondi il conteggio sopra la griglia">Conteggio</button></h2>
+      <div id="mainGrooveHost"></div>
+    </div>
+
+    <div class="card">
+      <h2>Struttura <small id="structTotal"></small></h2>
+      <div class="add-zone">
+        <label>Aggiungi sezione</label>
+        <div id="blockAddRow"></div>
+      </div>
+      <div class="seq-zone">
+        <label>Sequenza</label>
+        <div id="structStrip" class="struct-strip"></div>
+      </div>
+      <div id="blocksSection"></div>
+    </div>
+  `;
+
+  try{ panel.classList.toggle("no-counts", localStorage.getItem("qcd_counts") === "off"); }catch(e){}
+  const btnCounts = document.getElementById("btnCounts");
+  const syncCounts = ()=> btnCounts.classList.toggle("on", !panel.classList.contains("no-counts"));
+  syncCounts();
+  btnCounts.addEventListener("click", ()=>{
+    panel.classList.toggle("no-counts");
+    try{ localStorage.setItem("qcd_counts", panel.classList.contains("no-counts") ? "off" : "on"); }catch(e){}
+    syncCounts();
+  });
+  document.getElementById("titleInput").addEventListener("input", (e)=>{
+    chart.title = e.target.value; saveState(); renderSidebar();
+    document.querySelector("#topbar .tb-title").textContent = chart.title;
+    updateChartView();
+  });
+  document.getElementById("artistInput").addEventListener("input", (e)=>{
+    chart.artist = e.target.value; saveState(); updateChartView();
+  });
+  document.getElementById("bpmInput").addEventListener("input", (e)=>{
+    let v = parseInt(e.target.value, 10); if(isNaN(v)) v = 0;
+    chart.bpm = v; saveState(); renderSidebar(); updateChartView();
+  });
+  const setBpm = (v)=>{
+    v = Math.max(20, Math.min(320, v));
+    chart.bpm = v;
+    document.getElementById("bpmInput").value = v;
+    saveState(); renderSidebar(); updateChartView();
+  };
+  document.getElementById("bpmMinus").addEventListener("click", ()=>setBpm((chart.bpm||120) - 1));
+  document.getElementById("bpmPlus").addEventListener("click", ()=>setBpm((chart.bpm||120) + 1));
+  const applyTimeSig = (newTs)=>{
+    stopPlayback();
+    chart.timeSig = newTs;
+    resizeGrooveToTimeSig(chart.mainGroove, chart.timeSig);
+    (chart.blocks || []).forEach(b=>{ if(b.groove) resizeGrooveToTimeSig(b.groove, chart.timeSig); });
+    saveState(); renderSidebar(); renderEditor();
+  };
+  const tsWarn = document.getElementById("tsWarn");
+  document.getElementById("timeSigSelect").addEventListener("change", (e)=>{
+    const newTs = e.target.value;
+    if(chartLosesNotes(chart, newTs)){
+      tsWarn.querySelector("[data-msg]").textContent = "Passando a " + newTs + " le note oltre la fine della battuta andranno perse.";
+      tsWarn.dataset.ts = newTs;
+      tsWarn.hidden = false;
+    } else {
+      tsWarn.hidden = true;
+      applyTimeSig(newTs);
+    }
+  });
+  document.getElementById("tsOk").addEventListener("click", ()=>applyTimeSig(tsWarn.dataset.ts));
+  document.getElementById("tsNo").addEventListener("click", ()=>{
+    tsWarn.hidden = true;
+    document.getElementById("timeSigSelect").value = chart.timeSig;
+  });
+  document.querySelectorAll("#feelSeg button").forEach(b=>b.addEventListener("click", ()=>{
+    chart.feel = b.dataset.feel;
+    document.querySelectorAll("#feelSeg button").forEach(x=>x.classList.toggle("on", x === b));
+    saveState(); updateChartView();
+  }));
+
+  renderGrooveEditor(document.getElementById("mainGrooveHost"), chart.mainGroove, "main", ()=>{ saveState(); updateChartView(); }, "#14B8A6", null, chart.timeSig, true);
+
+  renderBlockAddButtons(chart);
+  renderBlocks(chart);
+  updateChartView();
+}
+
+function renderBlockAddButtons(chart){
+  const row = document.getElementById("blockAddRow");
+  row.innerHTML = "";
+  BLOCK_ORDER.forEach(type=>{
+    const cfg = BLOCK_TYPES[type];
+    const override = getTypeColorOverride(chart, type);
+    const color = override || cfg.color;
+    const text = override ? contrastTextColor(override) : cfg.text;
+    const btn = document.createElement("button");
+    btn.textContent = "+ " + cfg.label;
+    btn.style.borderColor = color;
+    btn.addEventListener("click", ()=>{
+      const newB = newBlock(type);
+      if(override) newB.customColor = override;
+      chart.blocks.push(newB);
+      saveState(); renderBlockAddButtons(chart); renderBlocks(chart); updateChartView();
+      focusBlock(newB.id);
+    });
+    row.appendChild(btn);
+  });
+  const customOverride = getTypeColorOverride(chart, "CUSTOM");
+  const customBtn = document.createElement("button");
+  customBtn.className = "custom-chip";
+  customBtn.textContent = "+ Custom";
+  if(customOverride){
+    customBtn.style.borderColor = customOverride;
+  }
+  customBtn.addEventListener("click", ()=>{
+    const newB = newBlock("CUSTOM");
+    if(customOverride) newB.customColor = customOverride;
+    chart.blocks.push(newB);
+    saveState(); renderBlockAddButtons(chart); renderBlocks(chart); updateChartView();
+    focusBlock(newB.id);
+  });
+  row.appendChild(customBtn);
+}
+
+function grooveIsEmpty(groove){
+  return !groove || !groove.measures.some(g=>ALL_LANES.some(l=>(g[l]||[]).some(v=>v && v !== 'off')));
+}
+
+// Durata stimata: battute x movimenti del metro x 60 / BPM
+function songDuration(chart){
+  let bars = 0;
+  (chart.blocks || []).forEach(b=>{ const n = parseInt(b.bars, 10); if(!isNaN(n)) bars += n; });
+  const bpm = chart.bpm;
+  if(!bars || !(bpm > 0)) return "";
+  const sec = Math.round(bars * timeSigMeta(chart.timeSig).beats * 60 / bpm);
+  return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+}
+
+function focusBlock(id){
+  const card = document.querySelector('#blocksSection [data-block-id="' + id + '"]');
+  if(!card) return;
+  card.scrollIntoView({behavior:"smooth", block:"center"});
+  card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+}
+
+// Trascinamento di una fascia della sequenza: le schede sotto seguono lo stesso ordine.
+// Un tocco senza movimento salta alla scheda.
+function attachStripDrag(seg, chart, block, strip){
+  seg.addEventListener("pointerdown", (e)=>{
+    if(e.button !== undefined && e.button !== 0) return;
+    if(e.target.closest(".seg-x")) return;
+    const startX = e.clientX, startY = e.clientY;
+    let dragging = false;
+    const move = (ev)=>{
+      if(!dragging){
+        if(Math.hypot(ev.clientX - startX, ev.clientY - startY) < 6) return;
+        dragging = true;
+        seg.classList.add("dragging-seg");
+      }
+      ev.preventDefault();
+      // si sposta solo quando il puntatore è dentro un'altra fascia, così l'ordine non "balla"
+      const hit = Array.from(strip.children).find(c=>{
+        if(c === seg) return false;
+        const r = c.getBoundingClientRect();
+        return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+      });
+      if(!hit) return;
+      const r = hit.getBoundingClientRect();
+      const ref = ev.clientX < r.left + r.width/2 ? hit : hit.nextSibling;
+      if(ref !== seg && ref !== seg.nextSibling) strip.insertBefore(seg, ref);
+    };
+    const up = ()=>{
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      seg.classList.remove("dragging-seg");
+      if(!dragging){ focusBlock(block.id); return; }
+      const ids = Array.from(strip.children).map(c=>c.dataset.id);
+      chart.blocks.sort((a,b)=> ids.indexOf(a.id) - ids.indexOf(b.id));
+      // le schede vengono spostate (non ricostruite): note, groove e ascolto in corso restano intatti
+      const list = document.getElementById("blocksSection");
+      if(list) ids.forEach(id=>{ const c = list.querySelector('[data-block-id="' + id + '"]'); if(c) list.appendChild(c); });
+      saveState(); updateChartView();
+    };
+    window.addEventListener("pointermove", move, {passive:false});
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  });
+}
+
+// Striscia della struttura: una fascia per sezione, larga in proporzione alle battute. Tocca per saltare alla sezione.
+function renderStrip(chart){
+  const strip = document.getElementById("structStrip");
+  const totalEl = document.getElementById("structTotal");
+  if(!strip) return;
+  strip.innerHTML = "";
+  if(strip.parentElement) strip.parentElement.style.display = (chart.blocks && chart.blocks.length) ? "" : "none";
+  let total = 0;
+  (chart.blocks || []).forEach(block=>{
+    const cfg = blockCfg(block);
+    const n = parseInt(block.bars, 10);
+    if(!isNaN(n)) total += n;
+    const seg = document.createElement("div");
+    seg.className = "strip-seg";
+    seg.dataset.id = block.id;
+    seg.style.flexGrow = String(isNaN(n) ? 1 : Math.max(1, n));
+    seg.style.background = cfg.color;
+    seg.style.color = cfg.text;
+    seg.title = cfg.label + (isNaN(n) ? "" : " · " + n + " battute") + " — tocca per saltare, trascina per riordinare";
+    seg.innerHTML = '<span class="seg-label"></span><button class="seg-x" aria-label="Elimina sezione" title="Elimina">×</button>';
+    const lab = seg.querySelector(".seg-label");
+    lab.textContent = cfg.label;
+    attachStripDrag(seg, chart, block, strip);
+    let armTimer = null;
+    seg.querySelector(".seg-x").addEventListener("click", (e)=>{
+      e.stopPropagation();
+      if(seg.classList.contains("arming")){
+        clearTimeout(armTimer);
+        if(playbackState.key === "blk-" + block.id) stopPlayback();
+        chart.blocks = chart.blocks.filter(b=>b.id !== block.id);
+        saveState(); renderBlockAddButtons(chart); renderBlocks(chart); updateChartView();
+      } else {
+        seg.classList.add("arming");
+        lab.textContent = "Elimina?";
+        armTimer = setTimeout(()=>{ seg.classList.remove("arming"); lab.textContent = cfg.label; }, 2800);
+      }
+    });
+    strip.appendChild(seg);
+  });
+  const dur = songDuration(chart);
+  if(totalEl) totalEl.textContent = total ? total + " battute" + (dur ? " · " + dur : "") : "";
+}
+
+function renderBlocks(chart){
+  const wrap = document.getElementById("blocksSection");
+  wrap.innerHTML = "";
+  if(!chart.blocks.length){
+    wrap.innerHTML = '<div class="empty-state">Non c\'è ancora niente: aggiungi una sezione dai pulsanti qui sopra.</div>';
+    return;
+  }
+  chart.blocks.forEach((block)=>{
+    const cfg = blockCfg(block);
+    const card = document.createElement("div");
+    card.className = "block-card";
+    card.style.background = cfg.color;
+    card.style.color = cfg.text;
+    card.setAttribute("data-block-id", block.id);
+    card.innerHTML = `
+      <div class="block-card-top">
+        <span class="color-dot" title="Cambia colore (doppio tap per ripristinare quello predefinito)"><input type="color" data-color-picker value="${cfg.color}"></span>
+        ${block.type === "CUSTOM"
+          ? `<input class="badge-input" data-custom-label value="${escapeHtml(cfg.label)}" maxlength="24" placeholder="Nome sezione">`
+          : `<div class="badge-label">${escapeHtml(cfg.label)}</div>`}
+        <div class="block-card-controls">
+          <button class="drag-handle" data-drag-handle title="Trascina per riordinare"><span class="grip"><span></span><span></span><span></span><span></span><span></span><span></span></span></button>
+          <button class="del-btn" data-del title="Elimina">×</button>
+        </div>
+      </div>
+      <div class="block-row">
+        <div class="bars-stepper">
+          <button data-bars-minus aria-label="Meno battute">−</button>
+          <span class="bars-value" data-bars-value ${block.bars === "-" ? "data-empty" : ""}>${barsText(block.bars)}</span>
+          <button data-bars-plus aria-label="Più battute">+</button>
+        </div>
+        <textarea class="block-notes" data-notes rows="1" placeholder="Appunti...">${escapeHtml(block.notes)}</textarea>
+      </div>
+      <div class="block-links">
+        <button data-grid-toggle>${block.gridEnabled ? "Nascondi groove" : "+ Groove del blocco"}</button>
+        <button data-dup>Duplica sezione</button>
+      </div>
+      <div class="block-mini" data-mini-container style="display:${block.gridEnabled ? "block":"none"};">
+        <div data-mini-host></div>
+      </div>
+    `;
+    wrap.appendChild(card);
+
+    if(block.type === "CUSTOM"){
+      card.querySelector("[data-custom-label]").addEventListener("input", (e)=>{
+        block.customLabel = e.target.value; saveState(); updateChartView();
+      });
+    }
+
+    const colorInput = card.querySelector("[data-color-picker]");
+    colorInput.addEventListener("input", (e)=>{
+      const val = e.target.value;
+      card.style.background = val;
+      card.style.color = contrastTextColor(val);
+    });
+    colorInput.addEventListener("change", (e)=>{
+      block.customColor = e.target.value;
+      saveState(); renderBlockAddButtons(chart); renderBlocks(chart); updateChartView();
+    });
+    colorInput.addEventListener("dblclick", (e)=>{
+      e.preventDefault();
+      block.customColor = null;
+      saveState(); renderBlockAddButtons(chart); renderBlocks(chart); updateChartView();
+    });
+
+    armConfirmDelete(card.querySelector("[data-del]"), ()=>{
+      if(playbackState.key === "blk-"+block.id) stopPlayback();
+      chart.blocks = chart.blocks.filter(b=>b.id !== block.id);
+      saveState(); renderBlocks(chart); updateChartView();
+    });
+
+    const barsValEl = card.querySelector("[data-bars-value]");
+    card.querySelector("[data-bars-minus]").addEventListener("click", ()=>{
+      const current = block.bars;
+      if(current === "-") {
+        return;
+      } else {
+        const num = parseInt(current, 10);
+        if(num > 1) {
+          block.bars = String(num - 1);
+        } else if(num === 1) {
+          block.bars = "-";
+        }
+      }
+      barsValEl.textContent = barsText(block.bars); barsValEl.toggleAttribute("data-empty", block.bars === "-");
+      saveState(); updateChartView();
+    });
+    card.querySelector("[data-bars-plus]").addEventListener("click", ()=>{
+      if(block.bars === "-") {
+        block.bars = "1";
+      } else {
+        const num = parseInt(block.bars, 10);
+        if(num < 99) block.bars = String(num + 1);
+      }
+      barsValEl.textContent = barsText(block.bars); barsValEl.toggleAttribute("data-empty", block.bars === "-");
+      saveState(); updateChartView();
+    });
+    const notesEl = card.querySelector("[data-notes]");
+    const fitNotes = ()=>{ notesEl.style.height = "auto"; notesEl.style.height = Math.max(40, notesEl.scrollHeight + 2) + "px"; };
+    notesEl.addEventListener("input", (e)=>{
+      block.notes = e.target.value; fitNotes(); saveState(); updateChartView();
+    });
+    requestAnimationFrame(fitNotes);
+
+    card.querySelector("[data-dup]").addEventListener("click", ()=>{
+      const i = chart.blocks.findIndex(b=>b.id === block.id);
+      const copy = JSON.parse(JSON.stringify(block));
+      copy.id = uid();
+      chart.blocks.splice(i + 1, 0, copy);
+      saveState(); renderBlocks(chart); updateChartView();
+      focusBlock(copy.id);
+    });
+
+    function disableGrid(){
+      if(playbackState.key === "blk-"+block.id) stopPlayback();
+      block.gridEnabled = false;
+      block.groove = null;
+      const toggleBtn = card.querySelector("[data-grid-toggle]");
+      if(toggleBtn) toggleBtn.textContent = "+ Groove del blocco";
+      const miniContainer = card.querySelector("[data-mini-container]");
+      if(miniContainer){ miniContainer.style.display = "none"; }
+      const miniHost = card.querySelector("[data-mini-host]");
+      if(miniHost) miniHost.innerHTML = "";
+      saveState(); updateChartView();
+    }
+
+    card.querySelector("[data-grid-toggle]").addEventListener("click", (e)=>{
+      block.gridEnabled = !block.gridEnabled;
+      if(!block.gridEnabled && playbackState.key === "blk-"+block.id) stopPlayback();
+      if(block.gridEnabled && !block.groove) block.groove = newGroove(stepsPerMeasureFor(chart.timeSig));
+      e.target.textContent = block.gridEnabled ? "Nascondi groove" : "+ Groove del blocco";
+      const miniContainer = card.querySelector("[data-mini-container]");
+      miniContainer.style.display = block.gridEnabled ? "block" : "none";
+      if(block.gridEnabled){
+        renderGrooveEditor(card.querySelector("[data-mini-host]"), block.groove, "blk-"+block.id, ()=>{ saveState(); updateChartView(); }, lightenHex(cfg.color, 0.45), null, chart.timeSig, true, true, disableGrid);
+      }
+      saveState(); updateChartView();
+    });
+
+    if(block.gridEnabled){
+      if(!block.groove) block.groove = newGroove(stepsPerMeasureFor(chart.timeSig));
+      renderGrooveEditor(card.querySelector("[data-mini-host]"), block.groove, "blk-"+block.id, ()=>{ saveState(); updateChartView(); }, lightenHex(cfg.color, 0.45), null, chart.timeSig, true, true, disableGrid);
+    }
+
+    attachDragHandle(card, chart, block);
+  });
+}
+
+/* ============================ DRAG-TO-REORDER ============================ */
+function nearestCardTo(container, excludeEls, x, y){
+  const cards = Array.from(container.querySelectorAll(".block-card, .drag-placeholder")).filter(c=>!excludeEls.includes(c));
+  let best = null, bestDist = Infinity;
+  cards.forEach(c=>{
+    const r = c.getBoundingClientRect();
+    const cx = r.left + r.width/2;
+    const cy = r.top + r.height/2;
+    const d = (x-cx)*(x-cx) + (y-cy)*(y-cy);
+    if(d < bestDist){ bestDist = d; best = c; }
+  });
+  return best;
+}
+
+const dragState = {
+  active:false, card:null, handle:null, pointerId:null, placeholder:null,
+  offsetX:0, offsetY:0, lastX:0, lastY:0, rafPending:false, pendingXY:null
+};
+
+function movePlaceholderTo(x, y){
+  const wrap = document.getElementById("blocksSection");
+  if(!wrap || !dragState.placeholder) return;
+  const nearest = nearestCardTo(wrap, [dragState.placeholder, dragState.card], x, y);
+  if(nearest){
+    const rect = nearest.getBoundingClientRect();
+    const before = y < (rect.top + rect.height/2);
+    const target = before ? nearest : nearest.nextSibling;
+    if(target !== dragState.placeholder && dragState.placeholder !== target){
+      wrap.insertBefore(dragState.placeholder, target);
+    }
+  }
+}
+
+function endDragGlobal(){
+  if(!dragState.active) return;
+  dragState.active = false;
+  const wrap = document.getElementById("blocksSection");
+  const card = dragState.card;
+  if(card){
+    card.classList.remove("dragging");
+    card.style.position = "";
+    card.style.left = "";
+    card.style.top = "";
+    card.style.width = "";
+    card.style.zIndex = "";
+    card.style.pointerEvents = "";
+  }
+  if(wrap && dragState.placeholder && card){
+    wrap.insertBefore(card, dragState.placeholder);
+    dragState.placeholder.remove();
+  }
+  if(dragState.handle && dragState.pointerId != null){
+    try{ dragState.handle.releasePointerCapture(dragState.pointerId); }catch(err){}
+  }
+  const chart = getCurrentChart();
+  if(wrap && chart){
+    const newOrderIds = Array.from(wrap.querySelectorAll(".block-card")).map(c=>c.getAttribute("data-block-id"));
+    chart.blocks.sort((a,b)=> newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id));
+    saveState();
+    updateChartView();
+  }
+  dragState.card = null; dragState.handle = null; dragState.pointerId = null;
+  dragState.placeholder = null; dragState.pendingXY = null;
+}
+
+window.addEventListener("pointerup", endDragGlobal);
+window.addEventListener("pointercancel", endDragGlobal);
+
+function attachDragHandle(card, chart, block){
+  const handle = card.querySelector("[data-drag-handle]");
+  if(!handle) return;
+
+  handle.addEventListener("pointerdown", (e)=>{
+    e.preventDefault();
+    endDragGlobal();
+    const wrap = document.getElementById("blocksSection");
+    if(!wrap) return;
+    const rect = card.getBoundingClientRect();
+
+    const placeholder = document.createElement("div");
+    placeholder.className = "block-card drag-placeholder";
+    placeholder.style.width = rect.width + "px";
+    placeholder.style.height = rect.height + "px";
+    wrap.insertBefore(placeholder, card);
+
+    card.classList.add("dragging");
+    card.style.position = "fixed";
+    card.style.zIndex = 500;
+    card.style.left = rect.left + "px";
+    card.style.top = rect.top + "px";
+    card.style.width = rect.width + "px";
+    card.style.pointerEvents = "none";
+
+    dragState.active = true;
+    dragState.card = card;
+    dragState.handle = handle;
+    dragState.pointerId = e.pointerId;
+    dragState.placeholder = placeholder;
+    dragState.offsetX = e.clientX - rect.left;
+    dragState.offsetY = e.clientY - rect.top;
+    dragState.lastX = e.clientX;
+    dragState.lastY = e.clientY;
+    try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+  });
+
+  handle.addEventListener("pointermove", (e)=>{
+    if(!dragState.active || dragState.card !== card) return;
+    card.style.left = (e.clientX - dragState.offsetX) + "px";
+    card.style.top = (e.clientY - dragState.offsetY) + "px";
+
+    const dist = Math.hypot(e.clientX - dragState.lastX, e.clientY - dragState.lastY);
+    if(dist < 14) return;
+    dragState.lastX = e.clientX;
+    dragState.lastY = e.clientY;
+    dragState.pendingXY = { x:e.clientX, y:e.clientY };
+    if(!dragState.rafPending){
+      dragState.rafPending = true;
+      requestAnimationFrame(()=>{
+        dragState.rafPending = false;
+        if(dragState.active && dragState.pendingXY){ movePlaceholderTo(dragState.pendingXY.x, dragState.pendingXY.y); }
+      });
+    }
+  });
+}
+
+/* ============================ CHART VIEW (LIVE + PRINT + PNG) ============================ */
+// La vista chart (con la notazione VexFlow) viene disegnata solo quando serve:
+// in modalità Live, in stampa e in export. Durante la modifica si aggiorna solo l'etichetta di navigazione.
+function updateChartView(){
+  const chart = getCurrentChart();
+  const cv = document.getElementById("chartView");
+  if(!chart){ cv.innerHTML = ""; return; }
+  renderStrip(chart);
+  updateNavLabel();
+  if(!qcdRoot.classList.contains("live")) return;
+
+  const showMain = !grooveIsEmpty(chart.mainGroove);
+  const btnPl = document.getElementById("btnPlayLive");
+  if(btnPl) btnPl.style.display = showMain ? "" : "none";
+  cv.classList.toggle("has-current", !!(liveCurrentId || liveNextId));
+  cv.innerHTML = `
+    <a href="https://www.batterista.online" target="_blank" rel="noopener" title="www.batterista.online" style="display:block; width:fit-content; margin:0 auto;"><img class="cv-brand-logo" src="https://d1yei2z3i6k35z.cloudfront.net/11429636/67bdd0ad73993_BO_logo_2022_transp.png" alt="Batterista Online"></a>
+    <div class="cv-header">
+      <div>
+        <div class="cv-title">${escapeHtml(chart.title || "Senza titolo")}</div>
+        ${chart.artist ? `<div class="cv-artist">${escapeHtml(chart.artist)}</div>` : ""}
+        <div class="cv-tag">${chart.timeSig}${timeSigMeta(chart.timeSig).stepsPerBeat === 4 ? " · " + (FEELS[chart.feel] || "Straight") : ""}${songDuration(chart) ? " · " + songDuration(chart) : ""}</div>
+      </div>
+      <div>
+        <div class="cv-bpm">${chart.bpm}</div>
+        <div class="cv-bpm-label">BPM</div>
+      </div>
+    </div>
+    ${showMain ? '<div class="groove-title" style="margin-bottom:6px;">Main Groove</div>' : ""}
+    <div id="cvMainMeasures"></div>
+    <div id="cvSequence" class="cv-sequence"></div>
+    <div id="cvBlocks"></div>
+    <div style="margin-top:20px; text-align:center;" class="brand-credit">
+      Prodotto da <a href="https://www.batterista.online" target="_blank" style="color:var(--teal); text-decoration:none; font-weight:bold;">www.batterista.online</a>
+    </div>
+  `;
+
+  applyLogo();
+  const cvContentWidth = Math.max(260, (cv.clientWidth || 900) - 14);
+
+  const mainHost = document.getElementById("cvMainMeasures");
+  (showMain ? chart.mainGroove.measures : []).forEach((grid, mIdx)=>{
+    const box = document.createElement("div");
+    box.className = "notation-box";
+    box.style.marginBottom = "8px";
+    box.style.overflowX = "visible";
+    const inner = document.createElement("div");
+    inner.id = "cv-main-notation-" + mIdx;
+    box.appendChild(inner);
+    mainHost.appendChild(box);
+    const measured = inner.clientWidth;
+    const w = measured > 40 ? measured - 4 : cvContentWidth;
+    drawGrid(inner.id, grid, w, chart.timeSig, mIdx===0, true);
+  });
+
+  const seqHost = document.getElementById("cvSequence");
+  if(!chart.blocks.length){
+    seqHost.style.display = "none";
+  } else {
+    seqHost.style.display = "flex";
+    seqHost.innerHTML = chart.blocks.map((block,i)=>{
+      const cfg = blockCfg(block);
+      const chip = `<div class="cv-seq-chip${liveCurrentId === block.id ? " current" : ""}${liveNextId === block.id ? " next" : ""}" data-id="${block.id}" style="background:${cfg.color}; color:${cfg.text};">${escapeHtml(cfg.label)}</div>`;
+      return i === 0 ? chip : `<div class="cv-seq-arrow">→</div>${chip}`;
+    }).join("");
+  }
+
+  const blocksHost = document.getElementById("cvBlocks");
+  if(!chart.blocks.length){
+    blocksHost.innerHTML = '<div class="empty-state">Nessun blocco definito.</div>';
+  } else {
+    blocksHost.innerHTML = "";
+    chart.blocks.forEach(block=>{
+      const cfg = blockCfg(block);
+      const div = document.createElement("div");
+      div.className = "cv-block" + (liveCurrentId === block.id ? " current" : "") + (liveNextId === block.id ? " next" : "");
+      div.dataset.id = block.id;
+      div.addEventListener("click", ()=>{
+        liveCurrentId = (liveCurrentId === block.id) ? null : block.id;
+        const cvEl = document.getElementById("chartView");
+        cvEl.classList.toggle("has-current", !!liveCurrentId);
+        cvEl.querySelectorAll(".cv-block, .cv-seq-chip").forEach(el=>el.classList.toggle("current", el.dataset.id === liveCurrentId));
+      });
+      div.style.background = cfg.color;
+      div.style.color = cfg.text;
+      const barsDisplay = block.bars === "-" ? "<b>—</b>" : `<b>${block.bars}</b><small>battute</small>`;
+      div.innerHTML = `
+        <div class="cv-block-top">
+          <span class="cv-badge">${escapeHtml(cfg.label)}</span>
+          <span class="cv-bars">${barsDisplay}</span>
+        </div>
+        ${block.notes ? `<div class="cv-notes">${escapeHtml(block.notes)}</div>` : ""}
+      `;
+      blocksHost.appendChild(div);
+      if(block.gridEnabled && block.groove && block.groove.measures.length && !grooveIsEmpty(block.groove)){
+        const isTwoCol = block.groove.measures.length >= 2;
+        const fallbackWidth = isTwoCol ? Math.round((cvContentWidth-40)/2) : cvContentWidth-32;
+        const miniWrap = document.createElement("div");
+        miniWrap.className = "cv-mini-notation-wrap" + (isTwoCol ? " two-col" : "");
+        const innerEls = [];
+        block.groove.measures.forEach((grid, mIdx)=>{
+          const box = document.createElement("div");
+          box.className = "notation-box";
+          const inner = document.createElement("div");
+          inner.id = "cv-mini-" + block.id + "-" + mIdx;
+          box.appendChild(inner);
+          miniWrap.appendChild(box);
+          innerEls.push(inner);
+        });
+        div.appendChild(miniWrap);
+        block.groove.measures.forEach((grid, mIdx)=>{
+          const measured = innerEls[mIdx].clientWidth;
+          const w = measured > 40 ? measured - 4 : fallbackWidth;
+          drawGrid("cv-mini-" + block.id + "-" + mIdx, grid, w, chart.timeSig, mIdx === 0, true);
+        });
+      }
+    });
+  }
+}
+
+function updateNavLabel() {
+  const idx = getChartIndex();
+  const total = getChartCount();
+  const label = document.getElementById("navChartLabel");
+  if(label) {
+    const chart = getCurrentChart();
+    const name = chart ? (chart.title || "Senza titolo") : "—";
+    label.textContent = total > 1 ? `${idx+1}/${total} · ${name}` : name;
+  }
+}
+
+function navigateChart(direction) {
+  const idx = getChartIndex();
+  const total = getChartCount();
+  if(total <= 1) return;
+  stopPlayback();
+  metroStop();
+  let newIdx = (idx + direction + total) % total;
+  state.currentId = state.charts[newIdx].id;
+  liveCurrentId = null; liveNextId = null;
+  saveState();
+  if(qcdRoot.classList.contains("live")) {
+    updateChartView();
+    document.getElementById("chartViewOuter").scrollTop = 0;
+  } else {
+    renderEditor();
+    renderSidebar();
+  }
+}
+
+/* ============================ FILENAME ============================ */
+function filenameFor(chart){
+  const base = (chart.title || "drum-chart").replace(/[^a-z0-9]+/gi,"_").toLowerCase();
+  const artist = (chart.artist || "").replace(/[^a-z0-9]+/gi,"_").toLowerCase();
+  return artist ? `${base}_${artist}` : base;
+}
+
+/* ============================ IMPORT / EXPORT / PDF / PNG ============================ */
+function refreshBackupInfo(){
+  const el = document.getElementById("backupInfo");
+  if(!el) return;
+  let ts = 0;
+  try{ ts = parseInt(localStorage.getItem("qcd_last_backup"), 10) || 0; }catch(e){}
+  let txt, stale = false;
+  if(!ts){ txt = "Nessun backup ancora: salva la SetList per non perdere le chart."; stale = true; }
+  else {
+    const d = Math.floor((Date.now() - ts) / 86400000);
+    txt = "Ultimo backup: " + (d <= 0 ? "oggi" : d === 1 ? "ieri" : d + " giorni fa");
+    stale = d >= 7;
+    if(stale) txt += ". Conviene rifarlo.";
+  }
+  el.textContent = txt;
+  el.classList.toggle("stale", stale);
+}
+
+// Salva la SetList: dal telefono apre il menu Condividi (File, iCloud, Drive...), altrimenti scarica il file
+async function exportJSON(){
+  const dataStr = JSON.stringify(state, null, 2);
+  const d = new Date();
+  const stamp = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  const fname = "quickchart-drummer-setlist-" + stamp + ".json";
+  let done = false;
+  try{
+    const file = new File([dataStr], fname, {type:"application/json"});
+    if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+      await navigator.share({files:[file], title:"QuickChart Drummer - SetList"});
+      done = true;
+    }
+  }catch(err){
+    if(err && err.name === "AbortError") return;   // annullato dall'utente: non conta come backup
+  }
+  if(!done){
+    const blob = new Blob([dataStr], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+  try{ localStorage.setItem("qcd_last_backup", String(Date.now())); }catch(e){}
+  refreshBackupInfo();
+}
+
+function importJSON(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed || !Array.isArray(parsed.charts)) throw new Error("Formato non valido");
+      const existingIds = new Set(state.charts.map(c=>c.id));
+      parsed.charts.forEach(c=>{ if(existingIds.has(c.id)) c.id = uid(); state.charts.push(migrateChart(c)); });
+      state.currentId = parsed.charts.length ? parsed.charts[parsed.charts.length-1].id : state.currentId;
+      saveState(); renderSidebar(); renderEditor();
+      alert("SetList caricata con successo.");
+    }catch(err){
+      alert("Errore durante il caricamento: file non valido.");
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Cattura la vista chart e, insieme all'immagine, le posizioni verticali delle sezioni
+// (in pixel del canvas) così il PDF può andare a capo solo tra una sezione e l'altra.
+async function captureLiveCanvas(){
+  if(typeof html2canvas === "undefined") throw new Error("html2canvas non disponibile");
+  const wasLive = qcdRoot.classList.contains("live");
+  if(!wasLive){ qcdRoot.classList.add("live"); updateChartView(); }
+  try{
+    await new Promise(r=>setTimeout(r, 200));
+    const node = document.getElementById("chartView");
+    const SCALE = 2;
+    const nodeTop = node.getBoundingClientRect().top;
+    const units = [];
+    Array.from(node.children).forEach(ch=>{
+      if(ch.id === "cvBlocks" || ch.id === "cvMainMeasures"){ Array.from(ch.children).forEach(c=>units.push(c)); }
+      else units.push(ch);
+    });
+    const ranges = units.map(u=>{
+      const r = u.getBoundingClientRect();
+      return { top:(r.top - nodeTop)*SCALE, bottom:(r.bottom - nodeTop)*SCALE };
+    }).filter(r=>r.bottom > r.top);
+    // la sezione "corrente" e lo sbiadimento valgono solo a schermo: PNG e PDF escono puliti
+    const hadFocus = node.classList.contains("has-current");
+    node.classList.remove("has-current");
+    node.querySelectorAll(".current").forEach(el=>el.classList.add("_cur"));
+    node.querySelectorAll("._cur").forEach(el=>el.classList.remove("current"));
+    let canvas;
+    try{ canvas = await html2canvas(node, { backgroundColor:"#0A0B0C", scale:SCALE, useCORS:true }); }
+    finally{
+      node.querySelectorAll("._cur").forEach(el=>{ el.classList.remove("_cur"); el.classList.add("current"); });
+      if(hadFocus) node.classList.add("has-current");
+    }
+    canvas._units = ranges;
+    return canvas;
+  } finally {
+    if(!wasLive) qcdRoot.classList.remove("live");
+  }
+}
+
+async function exportPNG(){
+  const chart = getCurrentChart();
+  if(!chart) return;
+  try{
+    const canvas = await captureLiveCanvas();
+    const link = document.createElement("a");
+    link.download = filenameFor(chart) + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }catch(err){
+    console.error(err);
+    alert("Errore nella generazione del PNG. Verifica la connessione internet (serve per caricare la libreria di export).");
+  }
+}
+
+// Punti di interruzione pagina: sempre all'inizio di una sezione.
+// Una sezione che non entra nello spazio rimasto passa alla pagina successiva.
+function computePageBreaks(units, totalH, pageH){
+  const breaks = [0];
+  let start = 0;
+  while(totalH - start > pageH){
+    const limit = start + pageH;
+    let cut = null;
+    units.forEach(u=>{ if(u.top > start + 1 && u.top <= limit) cut = u.top; });
+    if(cut === null) cut = limit; // sezione più alta di una pagina: taglio forzato
+    breaks.push(cut);
+    start = cut;
+  }
+  breaks.push(totalH);
+  return breaks;
+}
+
+async function exportPDF(){
+  const chart = getCurrentChart();
+  if(!chart) return;
+  try{
+    const canvas = await captureLiveCanvas();
+
+    if(typeof window.jspdf !== "undefined"){
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('portrait', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageHmm = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const contentW = pageW - margin*2;
+      const mmPerPx = contentW / canvas.width;
+      const pageHpx = Math.floor((pageHmm - margin*2) / mmPerPx);
+      const breaks = computePageBreaks(canvas._units || [], canvas.height, pageHpx);
+
+      for(let p=0; p<breaks.length-1; p++){
+        const y0 = Math.round(breaks[p]);
+        const h = Math.max(1, Math.round(breaks[p+1] - breaks[p]));
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width; slice.height = h;
+        const sctx = slice.getContext("2d");
+        sctx.fillStyle = "#0A0B0C";
+        sctx.fillRect(0, 0, slice.width, slice.height);
+        sctx.drawImage(canvas, 0, y0, canvas.width, h, 0, 0, canvas.width, h);
+        if(p > 0) pdf.addPage();
+        pdf.setFillColor(10, 11, 12);
+        pdf.rect(0, 0, pageW, pageHmm, 'F');
+        pdf.addImage(slice.toDataURL("image/jpeg", 0.95), 'JPEG', margin, margin, contentW, h * mmPerPx);
+      }
+      pdf.save(filenameFor(chart) + '.pdf');
+    } else {
+      window.print();
+    }
+  }catch(err){
+    console.error(err);
+    alert("Errore nella generazione del PDF. Riprova con Stampa / PDF.");
+  }
+}
+
+let printWasLive = false;
+window.addEventListener("beforeprint", ()=>{
+  printWasLive = qcdRoot.classList.contains("live");
+  if(!printWasLive){ qcdRoot.classList.add("live"); updateChartView(); }
+  const chk = document.getElementById("chkPrintLight");
+  qcdRoot.classList.toggle("print-light", !!(chk && chk.checked));
+});
+window.addEventListener("afterprint", ()=>{
+  if(!printWasLive) qcdRoot.classList.remove("live");
+  qcdRoot.classList.remove("print-light");
+});
+
+function printChart(){
+  const chart = getCurrentChart();
+  if(!chart) return;
+  if(/android/i.test(navigator.userAgent) && typeof window.jspdf !== "undefined"){
+    exportPDF();
+  } else {
+    window.print();
+  }
+}
+
+/* ============================ METRONOMO (LIVE) ============================ */
+let liveNextId = null;
+let metroCountIn = 1;
+try{ const v = parseInt(localStorage.getItem("qcd_countin"), 10); if(!isNaN(v)) metroCountIn = Math.max(0, Math.min(8, v)); }catch(e){}
+const metro = { on:false, timer:null, uiTimers:[], bars:[], bar:0, beat:0, nextT:0, lastScroll:null };
+
+function metroInfo(t){ const e = document.getElementById("metroInfo"); if(e) e.textContent = t; }
+
+function metroClick(t, accent){
+  const ctx = getAudioCtx();
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = "square"; o.frequency.value = accent ? 1600 : 1000;
+  g.gain.setValueAtTime(accent ? 0.5 : 0.3, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(t); o.stop(t + 0.06);
+}
+
+// Evidenzia la sezione corrente e (nell'ultima battuta) quella successiva
+function metroSetLive(cur, next){
+  liveCurrentId = cur; liveNextId = next;
+  const cv = document.getElementById("chartView");
+  if(!cv) return;
+  cv.classList.toggle("has-current", !!(cur || next));
+  cv.querySelectorAll(".cv-block, .cv-seq-chip").forEach(el=>{
+    el.classList.toggle("current", el.dataset.id === cur);
+    el.classList.toggle("next", el.dataset.id === next);
+  });
+  const target = next || cur;
+  if(target && target !== metro.lastScroll){
+    metro.lastScroll = target;
+    const el = cv.querySelector('.cv-block[data-id="' + target + '"]');
+    if(el) el.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+}
+
+function metroStop(){
+  const was = metro.on;
+  if(metro.timer) clearInterval(metro.timer);
+  metro.timer = null;
+  metro.uiTimers.forEach(clearTimeout); metro.uiTimers = [];
+  metro.on = false; metro.lastScroll = null;
+  const b = document.getElementById("btnMetro");
+  if(b){ b.textContent = "Metronomo"; b.classList.remove("playing"); }
+  metroInfo("");
+  if(was && qcdRoot.classList.contains("live")) metroSetLive(null, null);
+}
+
+function metroShow(idx, beat){
+  const chart = getCurrentChart();
+  const bar = metro.bars[idx];
+  if(!chart || !bar) return;
+  if(bar.ci){
+    if(beat === 0){ const first = metro.bars.find(x=>!x.ci); metroSetLive(null, first ? first.id : null); }
+    metroInfo("Attacco " + bar.i + "/" + bar.n + " · " + (beat + 1));
+    return;
+  }
+  const blk = chart.blocks.find(b=>b.id === bar.id);
+  if(beat === 0){
+    let next = null;
+    if(bar.i === bar.n){ const nb = metro.bars.slice(idx + 1).find(x=>x.id !== bar.id); next = nb ? nb.id : null; }
+    metroSetLive(bar.id, next);
+  }
+  metroInfo((blk ? blockCfg(blk).label : "") + " " + bar.i + "/" + bar.n + " · " + (beat + 1));
+}
+
+function metroTick(){
+  if(!metro.on) return;
+  const ctx = getAudioCtx();
+  const chart = getCurrentChart();
+  if(!chart){ metroStop(); return; }
+  const beats = timeSigMeta(chart.timeSig).beats;
+  while(metro.nextT < ctx.currentTime + 0.15){
+    if(metro.bar >= metro.bars.length){
+      clearInterval(metro.timer); metro.timer = null;
+      metro.uiTimers.push(setTimeout(metroStop, Math.max(0, (metro.nextT - ctx.currentTime) * 1000)));
+      return;
+    }
+    const idx = metro.bar, beat = metro.beat, t = metro.nextT;
+    metroClick(t, beat === 0);
+    metro.uiTimers.push(setTimeout(()=>{ if(metro.on) metroShow(idx, beat); }, Math.max(0, (t - ctx.currentTime) * 1000)));
+    metro.nextT += 60 / Math.max(20, chart.bpm || 120);   // il BPM si riferisce al movimento del metro
+    if(++metro.beat >= beats){ metro.beat = 0; metro.bar++; }
+  }
+}
+
+function metroStart(){
+  const chart = getCurrentChart();
+  if(!chart) return;
+  stopPlayback();
+  const bars = [];
+  for(let i = 1; i <= metroCountIn; i++) bars.push({ci:true, i:i, n:metroCountIn});
+  chart.blocks.forEach(b=>{
+    const t = parseInt(b.bars, 10);
+    if(isNaN(t) || t < 1) return;
+    for(let i = 1; i <= t; i++) bars.push({id:b.id, i:i, n:t});
+  });
+  if(!bars.some(x=>!x.ci)){ metroInfo("Nessuna battuta"); return; }
+  const ctx = getAudioCtx();
+  if(ctx.state === "suspended") ctx.resume();
+  Object.assign(metro, { on:true, bars:bars, bar:0, beat:0, lastScroll:null, nextT:ctx.currentTime + 0.1 });
+  const btn = document.getElementById("btnMetro");
+  btn.textContent = "Stop"; btn.classList.add("playing");
+  metro.timer = setInterval(metroTick, 25);
+  metroTick();
+}
+
+function syncViewToggle(){
+  const t = document.getElementById("viewToggle");
+  if(!t) return;
+  const live = qcdRoot.classList.contains("live");
+  t.dataset.pos = live ? "chart" : "edit";
+  t.querySelectorAll("button").forEach(b=>b.classList.toggle("on", (b.dataset.view === "chart") === live));
+}
+
+function getUiSize(){
+  let v = null;
+  try{ v = localStorage.getItem("qcd_ui"); }catch(e){}
+  if(v !== "sm" && v !== "md") v = ((qcdRoot.clientWidth || window.innerWidth) < 700) ? "sm" : "md";
+  return v;
+}
+function applyUiSize(size){
+  qcdRoot.classList.toggle("ui-sm", size === "sm");
+  document.querySelectorAll(".ui-seg button").forEach(b=>b.classList.toggle("on", b.dataset.ui === size));
+}
+
+/* ============================ LIVE MODE ============================ */
+let liveCurrentId = null;
+let wakeLock = null;
+async function requestWake(){
+  try{
+    if("wakeLock" in navigator){
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", ()=>{ wakeLock = null; });
+    }
+  }catch(e){ wakeLock = null; }
+}
+function releaseWake(){
+  try{ if(wakeLock){ wakeLock.release(); } }catch(e){}
+  wakeLock = null;
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible" && qcdRoot.classList.contains("live") && !wakeLock) requestWake();
+});
+
+let editScroll = 0;
+function enterLive(){
+  editScroll = document.getElementById("main").scrollTop;
+  liveCurrentId = null; liveNextId = null;
+  stopPlayback();
+  qcdRoot.classList.add("live");
+  syncViewToggle();
+  updateChartView();
+  document.getElementById("chartViewOuter").scrollTop = 0;
+  requestWake();
+}
+function exitLive(){
+  metroStop();
+  qcdRoot.classList.remove("live");
+  syncViewToggle();
+  document.getElementById("main").scrollTop = editScroll;
+  stopPlayback();
+  releaseWake();
+}
+
+document.addEventListener("keydown", (e)=>{
+  if(!qcdRoot.classList.contains("live")) return;
+  if(e.key === "ArrowRight") navigateChart(1);
+  else if(e.key === "ArrowLeft") navigateChart(-1);
+  else if(e.key === "Escape") exitLive();
+});
+
+/* ============================ PWA ============================ */
+// Logo: salvato in locale al primo avvio online, poi usato anche offline
+function applyLogo(){
+  let d = null;
+  try{ d = localStorage.getItem("qcd_logo"); }catch(e){}
+  if(d) document.querySelectorAll("img.bo-logo, img.cv-brand-logo").forEach(i=>{ if(i.src !== d) i.src = d; });
+}
+function cacheLogo(){
+  let has = null;
+  try{ has = localStorage.getItem("qcd_logo"); }catch(e){}
+  if(has || !navigator.onLine) return;
+  fetch("https://d1yei2z3i6k35z.cloudfront.net/11429636/67bdd0ad73993_BO_logo_2022_transp.png", {mode:"cors"}).then(r=>r.blob()).then(bl=>{
+    const fr = new FileReader();
+    fr.onload = ()=>{ try{ localStorage.setItem("qcd_logo", fr.result); }catch(e){} applyLogo(); };
+    fr.readAsDataURL(bl);
+  }).catch(()=>{});
+}
+
+function setupPWA(){
+  if(window.QCD_STANDALONE) return;
+  try{
+    const iconUrl = "https://d1yei2z3i6k35z.cloudfront.net/11429636/67bdd0ad73993_BO_logo_2022_transp.png";
+    const manifest = {
+      name: "QuickChart Drummer",
+      short_name: "QC Drummer",
+      start_url: window.location.href,
+      display: "standalone",
+      background_color: "#0A0B0C",
+      theme_color: "#14B8A6",
+      icons: [
+        { src: iconUrl, sizes: "192x192", type: "image/png" },
+        { src: iconUrl, sizes: "512x512", type: "image/png" }
+      ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifest)], {type:"application/manifest+json"});
+    const manifestUrl = URL.createObjectURL(manifestBlob);
+    let link = document.querySelector('link[rel="manifest"]');
+    if(!link){ link = document.createElement("link"); link.rel = "manifest"; document.head.appendChild(link); }
+    link.href = manifestUrl;
+
+    function ensureMeta(name, content){
+      let m = document.querySelector(`meta[name="${name}"]`);
+      if(!m){ m = document.createElement("meta"); m.name = name; document.head.appendChild(m); }
+      m.content = content;
+    }
+    ensureMeta("theme-color", "#14B8A6");
+    ensureMeta("apple-mobile-web-app-capable", "yes");
+    ensureMeta("mobile-web-app-capable", "yes");
+    ensureMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
+    ensureMeta("apple-mobile-web-app-title", "QC Drummer");
+
+    let touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if(!touchIcon){ touchIcon = document.createElement("link"); touchIcon.rel = "apple-touch-icon"; document.head.appendChild(touchIcon); }
+    touchIcon.href = iconUrl;
+  }catch(e){ console.error("Errore impostazione PWA:", e); }
+}
+
+/* ============================ INIT / EVENTS ============================ */
+function init(){
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+  loadState();
+  refreshBackupInfo();
+  applyUiSize(getUiSize());
+  syncViewToggle();
+  renderSidebar();
+  renderEditor();
+  setupPWA();
+  applyLogo(); cacheLogo();
+
+  const chkPrintLight = document.getElementById("chkPrintLight");
+  try{ chkPrintLight.checked = localStorage.getItem("qcd_print_light") !== "false"; }catch(e){ chkPrintLight.checked = true; }
+  chkPrintLight.addEventListener("change", ()=>{
+    try{ localStorage.setItem("qcd_print_light", chkPrintLight.checked ? "true" : "false"); }catch(e){}
+  });
+
+  document.getElementById("btnPrevChart").addEventListener("click", ()=>navigateChart(-1));
+  document.getElementById("btnNextChart").addEventListener("click", ()=>navigateChart(1));
+
+  document.getElementById("btnMenuToggle").addEventListener("click", openSidebar);
+  document.getElementById("overlay").addEventListener("click", closeSidebar);
+
+  document.getElementById("btnNewChart").addEventListener("click", ()=>{
+    stopPlayback();
+    const c = newChart();
+    state.charts.push(c); state.currentId = c.id;
+    saveState(); renderSidebar(); renderEditor(); closeSidebar();
+  });
+  document.getElementById("btnDupChart").addEventListener("click", duplicateCurrentChart);
+
+  document.getElementById("btnExport").addEventListener("click", exportJSON);
+  document.getElementById("btnImportTrigger").addEventListener("click", ()=>document.getElementById("fileImport").click());
+  document.getElementById("fileImport").addEventListener("change", (e)=>{
+    if(e.target.files && e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value = "";
+  });
+  document.getElementById("btnPNGLive").addEventListener("click", exportPNG);
+  document.getElementById("btnPDFLive").addEventListener("click", printChart);
+  // Interruttore Modifica | La chart (presente in entrambe le viste)
+  document.querySelectorAll("#viewToggle button").forEach(b=>b.addEventListener("click", ()=>{
+    const isLive = qcdRoot.classList.contains("live");
+    if(b.dataset.view === "chart" && !isLive) enterLive();
+    else if(b.dataset.view === "edit" && isLive) exitLive();
+  }));
+  document.querySelectorAll(".ui-seg button").forEach(b=>b.addEventListener("click", ()=>{
+    try{ localStorage.setItem("qcd_ui", b.dataset.ui); }catch(e){}
+    applyUiSize(b.dataset.ui);
+    if(qcdRoot.classList.contains("live")) updateChartView(); else renderEditor();
+  }));
+  const ciVal = document.getElementById("ciVal");
+  ciVal.textContent = metroCountIn;
+  const setCi = (v)=>{
+    metroCountIn = Math.max(0, Math.min(8, v));
+    ciVal.textContent = metroCountIn;
+    try{ localStorage.setItem("qcd_countin", String(metroCountIn)); }catch(e){}
+  };
+  document.getElementById("ciMinus").addEventListener("click", ()=>setCi(metroCountIn - 1));
+  document.getElementById("ciPlus").addEventListener("click", ()=>setCi(metroCountIn + 1));
+  document.getElementById("btnMetro").addEventListener("click", ()=>{ if(metro.on) metroStop(); else metroStart(); });
+  document.getElementById("btnExitLive").addEventListener("click", exitLive);
+
+  // Play del Main Groove direttamente dalla modalità Live
+  const btnPlayLive = document.getElementById("btnPlayLive");
+  btnPlayLive.addEventListener("click", ()=>{
+    metroStop();
+    if(playbackState.playing && playbackState.activeButton === btnPlayLive){ stopPlayback(); return; }
+    const chart = getCurrentChart();
+    if(!chart) return;
+    playMeasures(()=>{
+      const c = getCurrentChart();
+      return c ? { measures:c.mainGroove.measures, bpm:c.bpm, timeSig:c.timeSig, feel:c.feel } : null;
+    }, btnPlayLive, "live", ()=>document.getElementById("chartView"));
+  });
+
+  // Swipe orizzontale per cambiare brano in Live
+  const outer = document.getElementById("chartViewOuter");
+  let touchStart = null;
+  outer.addEventListener("touchstart", (e)=>{
+    if(e.touches.length !== 1){ touchStart = null; return; }
+    touchStart = { x:e.touches[0].clientX, y:e.touches[0].clientY };
+  }, {passive:true});
+  outer.addEventListener("touchend", (e)=>{
+    if(!touchStart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    touchStart = null;
+    if(Math.abs(dx) > 70 && Math.abs(dy) < 45 && Math.abs(dx) > Math.abs(dy)*2){
+      navigateChart(dx < 0 ? 1 : -1);
+    }
+  }, {passive:true});
+
+  let resizeTimer;
+  let lastWidth = window.innerWidth;
+  window.addEventListener("resize", ()=>{
+    if(window.innerWidth === lastWidth) return;
+    lastWidth = window.innerWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(()=>{
+      const chart = getCurrentChart();
+      if(!chart) return;
+      if(qcdRoot.classList.contains("live")) updateChartView();
+      else renderEditor();
+    }, 200);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+</script>
+</body>
+</html>
